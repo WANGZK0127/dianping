@@ -44,14 +44,14 @@
     <div class="main-content">
       <div class="categories-section">
         <div class="container">
-          <el-row :gutter="20" justify="center">
-            <el-col :span="6" v-for="category in categories" :key="category.name">
-              <div class="category-item" @click="checkLogin(() => handleCategoryClick(category.name))">
-                <el-icon><component :is="category.icon" /></el-icon>
-                <span>{{ category.name }}</span>
-              </div>
-            </el-col>
-          </el-row>
+          <div class="shop-type-grid">
+            <div v-for="category in categories" :key="category.name" 
+                 class="category-item" 
+                 @click="checkLogin(() => handleCategoryClick(category.name))">
+              <img :src="category.icon" class="category-icon" alt="category.name" />
+              <span>{{ category.name }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -129,9 +129,15 @@
 <script>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Search, ArrowDown, Food, Shop, Coffee, Present, Place, House, Basketball, Film, Picture, ChatDotRound, Star, Plus, Location, Top } from '@element-plus/icons-vue'
+import { 
+  Search, ArrowDown, Food, Headset, 
+  ScaleToOriginal, Star, Location, House, 
+  Present, GobletSquareFull, Film, 
+  Basketball, ChatDotRound, Plus, Top 
+} from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { ElMessage } from 'element-plus'
+import { getShopTypes } from '../api/shop'
 
 export default {
   name: 'HomePage',
@@ -139,18 +145,17 @@ export default {
     Search,
     ArrowDown,
     Food,
-    Shop,
-    Coffee,
-    Present,
-    Place,
-    House,
-    Basketball,
-    Film,
-    Picture,
-    ChatDotRound,
+    Headset,
+    ScaleToOriginal,
     Star,
-    Plus,
     Location,
+    House,
+    Present,
+    GobletSquareFull,
+    Film,
+    Basketball,
+    ChatDotRound,
+    Plus,
     Top
   },
   setup() {
@@ -158,17 +163,31 @@ export default {
     const searchText = ref('')
     const currentLocation = ref('北京')
     const locationDialogVisible = ref(false)
-    
-    const categories = [
-      { name: '美食', icon: 'Food' },
-      { name: '购物', icon: 'Shop' },
-      { name: '咖啡', icon: 'Coffee' },
-      { name: '礼品', icon: 'Present' },
-      { name: '旅游', icon: 'Place' },
-      { name: '酒店', icon: 'House' },
-      { name: '运动', icon: 'Basketball' },
-      { name: '娱乐', icon: 'Film' }
-    ]
+    const categories = ref([])
+
+    // 获取商店类型数据
+    const loadShopTypes = async () => {
+      try {
+        const data = await getShopTypes()
+        categories.value = data.map(item => {
+          return {
+            id: item.id,
+            name: item.name,
+            icon: item.icon,
+            sort: item.sort
+          }
+        }).sort((a, b) => a.sort - b.sort)
+      } catch (error) {
+        console.error('获取商店类型失败:', error)
+        ElMessage.error('获取商店类型失败')
+      }
+    }
+
+    // 初始化数据
+    onMounted(() => {
+      userStore.initUserState()
+      loadShopTypes()
+    })
 
     const posts = ref([
       {
@@ -197,11 +216,6 @@ export default {
       '杭州', '南京', '武汉', '成都',
       '重庆', '西安', '苏州', '天津'
     ]
-
-    // 初始化用户状态
-    onMounted(() => {
-      userStore.initUserState()
-    })
 
     // 登录检查函数
     const checkLogin = (callback) => {
@@ -426,13 +440,19 @@ export default {
   margin-bottom: 20px;
 }
 
+.shop-type-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+  padding: 20px 0;
+}
+
 .category-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   padding: 16px;
-  margin: 10px 0;
   cursor: pointer;
   transition: all 0.3s;
   border-radius: 8px;
@@ -608,5 +628,11 @@ export default {
 .city-tag:hover {
   background-color: #409EFF;
   color: white;
+}
+
+.category-icon {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
 }
 </style> 
