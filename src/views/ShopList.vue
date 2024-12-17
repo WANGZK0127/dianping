@@ -26,6 +26,36 @@
       </div>
     </div>
 
+    <div class="search-section">
+      <div class="search-container">
+        <el-input
+          v-model="searchText"
+          placeholder="搜索商家、商品"
+          class="search-input"
+          :prefix-icon="Search"
+          clearable
+          @keyup.enter="handleSearch"
+        >
+          <template #append>
+            <el-button type="primary" :icon="Search" @click="handleSearch">
+              搜索
+            </el-button>
+          </template>
+        </el-input>
+        <div class="search-tags" v-if="hotSearches.length">
+          <span class="tag-label">热门搜索：</span>
+          <el-tag
+            v-for="tag in hotSearches"
+            :key="tag"
+            class="search-tag"
+            @click="searchText = tag"
+          >
+            {{ tag }}
+          </el-tag>
+        </div>
+      </div>
+    </div>
+
     <div class="main-content">
       <div class="container">
         <el-row :gutter="20">
@@ -79,7 +109,7 @@
 <script>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, ArrowDown } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowDown, Search } from '@element-plus/icons-vue'
 import { getShopsByType, getShopTypes } from '../api/shop'
 import { ElMessage } from 'element-plus'
 
@@ -87,7 +117,8 @@ export default {
   name: 'ShopList',
   components: {
     ArrowLeft,
-    ArrowDown
+    ArrowDown,
+    Search
   },
   setup() {
     const route = useRoute()
@@ -123,7 +154,7 @@ export default {
         })
         total.value = shops.value.length * 2
       } catch (error) {
-        console.error('获取商���列表失败:', error)
+        console.error('获取商铺列表失败:', error)
         ElMessage.error('获取商铺列表失败')
       } finally {
         loading.value = false
@@ -174,6 +205,19 @@ export default {
       router.push('/')
     }
 
+    // 搜索相关
+    const searchText = ref('')
+    const hotSearches = ref(['火锅', '烤肉', '奶茶', '小吃', '川菜'])
+
+    const handleSearch = () => {
+      if (!searchText.value.trim()) {
+        ElMessage.warning('请输入搜索内容')
+        return
+      }
+      // TODO: 实现搜索功能
+      console.log('搜索:', searchText.value)
+    }
+
     return {
       router,
       shops,
@@ -186,7 +230,10 @@ export default {
       goToShopDetail,
       shopTypes,
       handleTypeChange,
-      goHome
+      goHome,
+      searchText,
+      hotSearches,
+      handleSearch
     }
   }
 }
@@ -236,7 +283,7 @@ export default {
 }
 
 .main-content {
-  padding: 20px 0;
+  padding-top: 20px;
 }
 
 .container {
@@ -333,5 +380,78 @@ export default {
 
 .type-selector:hover {
   background-color: #f5f5f5;
+}
+
+.search-section {
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  padding: 20px 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.search-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.search-input {
+  width: 100%;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.search-input :deep(.el-input__inner) {
+  height: 40px;
+  font-size: 16px;
+}
+
+.search-input :deep(.el-input-group__append) {
+  background-color: #409EFF;
+  border-color: #409EFF;
+  color: white;
+  padding: 0 20px;
+  border-radius: 0 8px 8px 0;
+}
+
+.search-input :deep(.el-input-group__append:hover) {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+}
+
+.search-input :deep(.el-input-group__append .el-button) {
+  color: white;
+  border: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-tags {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-label {
+  color: #666;
+  font-size: 14px;
+}
+
+.search-tag {
+  cursor: pointer;
+  transition: all 0.3s;
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid #e0e0e0;
+}
+
+.search-tag:hover {
+  background-color: #409EFF;
+  color: white;
+  transform: translateY(-1px);
 }
 </style> 
