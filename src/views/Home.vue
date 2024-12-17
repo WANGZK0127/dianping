@@ -68,7 +68,7 @@
       <div class="posts-section">
         <div class="container">
           <el-row :gutter="20">
-            <el-col :span="6" v-for="post in posts" :key="post.id">
+            <el-col :span="6" v-for="post in posts" :key="post.id" class="post-card-container">
               <div class="post-card" @click="goToPostDetail(post.id)">
                 <div class="post-image">
                   <el-image :src="post.images[0]" fit="cover" />
@@ -581,6 +581,7 @@ export default {
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 20px;
+  margin-top: auto;
   cursor: pointer;
   transition: all 0.3s;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
@@ -588,6 +589,10 @@ export default {
   display: flex;
   flex-direction: column;
   backdrop-filter: blur(10px);
+}
+.post-card-container {
+  height: 100%;
+  margin-bottom: 20px;
 }
 
 .post-card:hover {
