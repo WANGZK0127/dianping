@@ -31,4 +31,12 @@ export const getBlogLikes = (id) => {
     url: `/blog/likes/${id}`,
     method: 'get'
   })
+}
+
+// 获取个人博客列表
+export const getBlogOfMe = () => {
+  return request({
+    url: '/blog/of/me',
+    method: 'get'
+  })
 } 

@@ -1,257 +1,105 @@
 <template>
-  <div class="user-center" v-if="userStore.userInfo.value">
-    <div class="profile-header">
-      <div class="profile-cover"></div>
-      <div class="profile-info">
-        <div class="avatar-container">
-          <el-avatar :size="100" :src="userStore.userInfo.value.avatar" />
-          <el-button class="edit-avatar" circle size="small">
-            <el-icon><Camera /></el-icon>
-          </el-button>
-        </div>
-        <div class="user-info">
-          <h2>{{ userStore.userInfo.value.username }}</h2>
-          <p class="bio">{{ userInfo.bio || '这个人很懒，还没有写简介' }}</p>
-          <div class="stats">
+  <div class="user-center">
+    <div class="container">
+      <!-- 用户信息区域 -->
+      <div class="user-info">
+        <el-avatar :size="80" :src="userStore.userInfo.value.icon" />
+        <div class="user-meta">
+          <h2>{{ userStore.userInfo.value.nickName }}</h2>
+          <div class="user-stats">
             <div class="stat-item">
-              <span class="number">{{ userInfo.posts }}</span>
-              <span class="label">发布</span>
-            </div>
-            <div class="stat-item">
-              <span class="number">{{ userInfo.comments }}</span>
-              <span class="label">评论</span>
-            </div>
-            <div class="stat-item">
-              <span class="number">{{ userInfo.likes }}</span>
-              <span class="label">获赞</span>
+              <span class="count">{{ blogs.length }}</span>
+              <span class="label">博客</span>
             </div>
           </div>
         </div>
-        <div class="action-buttons">
-          <el-button type="primary" @click="showEditProfile">
-            <el-icon><Edit /></el-icon>编辑资料
-          </el-button>
-          <el-button type="danger" @click="confirmLogout">
-            <el-icon><SwitchButton /></el-icon>退出登录
-          </el-button>
+      </div>
+
+      <!-- 博客列表 -->
+      <div class="blog-list">
+        <h3>我的博客</h3>
+        <el-empty v-if="blogs.length === 0" description="暂无博客" />
+        <div v-else class="blog-grid">
+          <div v-for="blog in blogs" :key="blog.id" class="blog-card" @click="goToBlogDetail(blog.id)">
+            <div class="blog-image" v-if="blog.images && blog.images.length">
+              <el-image :src="blog.images[0]" fit="cover" />
+            </div>
+            <div class="blog-content">
+              <h4>{{ blog.title }}</h4>
+              <p>{{ blog.content }}</p>
+              <div class="blog-footer">
+                <span class="time">{{ formatTime(blog.createTime) }}</span>
+                <span class="likes">
+                  <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
+                  {{ blog.liked }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-
-    <div class="content-tabs">
-      <el-tabs v-model="activeTab">
-        <el-tab-pane label="发布的帖子" name="posts">
-          <div class="posts-grid" v-if="userPosts.length">
-            <div v-for="post in userPosts" :key="post.id" class="post-card" @click="goToPostDetail(post.id)">
-              <div class="post-image">
-                <el-image :src="post.images[0]" fit="cover" />
-              </div>
-              <div class="post-info">
-                <h3>{{ post.title }}</h3>
-                <p>{{ post.content }}</p>
-                <div class="post-meta">
-                  <span><el-icon><Timer /></el-icon>{{ post.createTime }}</span>
-                  <div class="post-stats">
-                    <span><el-icon><ChatDotRound /></el-icon>{{ post.comments }}</span>
-                    <span><el-icon><Star /></el-icon>{{ post.likes }}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <el-empty v-else description="还没有发布过帖子" />
-        </el-tab-pane>
-
-        <el-tab-pane label="评论" name="comments">
-          <div class="comments-list" v-if="userComments.length">
-            <div v-for="comment in userComments" :key="comment.id" class="comment-card">
-              <p class="comment-content">{{ comment.content }}</p>
-              <div class="comment-meta">
-                <span class="post-title" @click="goToPostDetail(comment.postId)">评论于：{{ comment.postTitle }}</span>
-                <span class="comment-time"><el-icon><Timer /></el-icon>{{ comment.createTime }}</span>
-              </div>
-            </div>
-          </div>
-          <el-empty v-else description="还没有评论" />
-        </el-tab-pane>
-      </el-tabs>
-    </div>
-
-    <!-- 编辑个人资料对话框 -->
-    <el-dialog
-      v-model="editProfileVisible"
-      title="编辑个人资料"
-      width="500px"
-    >
-      <el-form :model="editForm" label-width="80px">
-        <el-form-item label="昵称">
-          <el-input v-model="editForm.username" />
-        </el-form-item>
-        <el-form-item label="个人简介">
-          <el-input
-            v-model="editForm.bio"
-            type="textarea"
-            :rows="4"
-            placeholder="写点什么来介绍自己吧"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="editProfileVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveProfile">保存</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { reactive, ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { Pointer } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
-import { Edit, Camera, Timer, Star, ChatDotRound, SwitchButton } from '@element-plus/icons-vue'
-import { getUserMe } from '../api/user'
+import { getBlogOfMe } from '../api/blog'
 
 export default {
   name: 'UserCenter',
-  components: {
-    Edit,
-    Camera,
-    Timer,
-    Star,
-    ChatDotRound,
-    SwitchButton
-  },
+  components: { Pointer },
   setup() {
     const router = useRouter()
-    const activeTab = ref('posts')
-    const editProfileVisible = ref(false)
+    const blogs = ref([])
 
-    // 用户信息
-    const userInfo = reactive({
-      bio: '热爱美食和旅行的探索者',
-      posts: 8,
-      comments: 23,
-      likes: 156
-    })
+    // 格式化时间
+    const formatTime = (timestamp) => {
+      if (!timestamp) return ''
+      const date = new Date(timestamp)
+      return date.toLocaleString()
+    }
 
-    // 编辑表单
-    const editForm = reactive({
-      username: '',
-      bio: userInfo.bio
-    })
-
-    // 用户帖子
-    const userPosts = ref([
-      {
-        id: 1,
-        title: '这家火锅太好吃了',
-        content: '今天和朋友一起去吃了这家火锅，味道真的很不错！服务态度也很好，环境很干净。',
-        images: ['https://via.placeholder.com/300x200'],
-        comments: 32,
-        likes: 245,
-        createTime: '2023-12-12'
-      }
-    ])
-
-    // 用户评论
-    const userComments = ref([
-      {
-        id: 1,
-        content: '这家店我也去过，确实很不错！推荐他们家的特色菜。',
-        postId: 1,
-        postTitle: '这家火锅太好吃了',
-        createTime: '2023-12-12'
-      }
-    ])
-
-    // 获取用户信息
-    const loadUserInfo = async () => {
+    // 获取个人博客列表
+    const loadUserBlogs = async () => {
       try {
-        const res = await getUserMe()
-        if (res.success && res.data) {
-          userStore.updateUserInfo({
-            name: res.data.name,
-            id: res.data.id,
-            icon: res.data.icon
-          })
-        }
+        const data = await getBlogOfMe()
+        blogs.value = data.map(blog => ({
+          id: blog.id,
+          title: blog.title || '无标题',
+          content: blog.content || '暂无内容',
+          images: blog.images ? blog.images.split(',').filter(img => img).map(img => {
+            if (img.startsWith('http')) return img
+            return img.startsWith('/') ? img : `/${img}`
+          }) : [],
+          createTime: blog.createTime,
+          isLike: blog.isLike,
+          liked: blog.liked || 0
+        }))
       } catch (error) {
-        console.error('获取用户信息失败:', error)
-        ElMessage.error('获取用户信息失败')
+        console.error('获取个人博客列表失败:', error)
+        ElMessage.error('获取个人博客列表失败')
       }
     }
 
-    // 显示编辑资料对话框
-    const showEditProfile = () => {
-      editForm.username = userStore.userInfo.value?.name || ''
-      editForm.bio = userInfo.bio
-      editProfileVisible.value = true
+    // 跳转到博客详情
+    const goToBlogDetail = (blogId) => {
+      router.push(`/post/${blogId}`)
     }
 
-    // 保存个人资料
-    const saveProfile = () => {
-      if (!editForm.username.trim()) {
-        ElMessage.warning('用户名不能为空')
-        return
-      }
-      userStore.updateUserInfo({
-        ...userStore.userInfo.value,
-        name: editForm.username
-      })
-      userInfo.bio = editForm.bio
-      ElMessage.success('保存成功')
-      editProfileVisible.value = false
-    }
-
-    // 确认退出登录
-    const confirmLogout = () => {
-      ElMessageBox.confirm(
-        '确定要退出登录吗？',
-        '提示',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      ).then(() => {
-        handleLogout()
-      }).catch(() => {})
-    }
-
-    // 退出登录
-    const handleLogout = () => {
-      userStore.logout()
-      ElMessage.success('已退出登录')
-      router.push('/login')
-    }
-
-    // 跳转到帖子详情
-    const goToPostDetail = (postId) => {
-      router.push(`/post/${postId}`)
-    }
-
-    onMounted(async () => {
-      if (userStore.isLoggedIn.value) {
-        await loadUserInfo()
-      }
+    onMounted(() => {
+      loadUserBlogs()
     })
 
     return {
       userStore,
-      userInfo,
-      activeTab,
-      editProfileVisible,
-      editForm,
-      userPosts,
-      userComments,
-      showEditProfile,
-      saveProfile,
-      confirmLogout,
-      handleLogout,
-      goToPostDetail
+      blogs,
+      formatTime,
+      goToBlogDetail
     }
   }
 }
@@ -259,70 +107,54 @@ export default {
 
 <style scoped>
 .user-center {
-  min-height: 100vh;
+  padding: 20px 0;
   background-color: #f5f5f5;
+  min-height: calc(100vh - 60px);
 }
 
-.profile-header {
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.user-info {
   background: #fff;
+  border-radius: 8px;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
   margin-bottom: 20px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.profile-cover {
-  height: 200px;
-  background: linear-gradient(120deg, #e0c3fc 0%, #8ec5fc 100%);
+.user-meta {
+  flex: 1;
 }
 
-.profile-info {
-  padding: 0 40px 40px;
-  position: relative;
-}
-
-.avatar-container {
-  position: relative;
-  margin-top: -50px;
-  display: inline-block;
-}
-
-.edit-avatar {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-}
-
-.user-info {
-  margin-top: 20px;
-}
-
-.user-info h2 {
-  margin: 0;
+.user-meta h2 {
+  margin: 0 0 16px 0;
   font-size: 24px;
   color: #333;
 }
 
-.bio {
-  margin: 10px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.stats {
+.user-stats {
   display: flex;
-  gap: 40px;
-  margin-top: 20px;
+  gap: 24px;
 }
 
 .stat-item {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
 }
 
-.stat-item .number {
-  display: block;
+.stat-item .count {
   font-size: 20px;
-  font-weight: bold;
-  color: #333;
+  font-weight: 600;
+  color: #409EFF;
 }
 
 .stat-item .label {
@@ -330,150 +162,99 @@ export default {
   color: #666;
 }
 
-.action-buttons {
-  position: absolute;
-  right: 40px;
-  top: 20px;
-  display: flex;
-  gap: 10px;
+.blog-list {
+  background: #fff;
+  border-radius: 8px;
+  padding: 30px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.content-tabs {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+.blog-list h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  color: #333;
 }
 
-.posts-grid {
+.blog-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 20px;
-  margin-top: 20px;
 }
 
-.post-card {
+.blog-card {
   background: #fff;
   border-radius: 8px;
   overflow: hidden;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  border: 1px solid #eee;
 }
 
-.post-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+.blog-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.post-image {
+.blog-image {
   height: 200px;
   overflow: hidden;
 }
 
-.post-image img {
+.blog-image .el-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
-.post-info {
+.blog-content {
   padding: 16px;
 }
 
-.post-info h3 {
+.blog-content h4 {
   margin: 0 0 8px 0;
   font-size: 16px;
   color: #333;
+  line-height: 1.4;
 }
 
-.post-info p {
+.blog-content p {
   margin: 0;
   font-size: 14px;
   color: #666;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.post-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.blog-footer {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid #eee;
-  font-size: 14px;
-  color: #999;
-}
-
-.post-stats {
-  display: flex;
-  gap: 16px;
-}
-
-.post-stats span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.comments-list {
-  margin-top: 20px;
-}
-
-.comment-card {
-  background: #fff;
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-}
-
-.comment-content {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  color: #333;
-}
-
-.comment-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+}
+
+.time {
+  font-size: 12px;
   color: #999;
 }
 
-.post-title {
-  color: #409EFF;
-  cursor: pointer;
-}
-
-.post-title:hover {
-  text-decoration: underline;
-}
-
-.comment-time {
+.likes {
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.user-details {
-  display: flex;
-  gap: 20px;
-  margin-top: 16px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: #666;
   font-size: 14px;
+  color: #666;
 }
 
-.detail-item .el-icon {
+.likes .el-icon {
   font-size: 16px;
+  color: #409EFF;
+}
+
+.likes .el-icon.liked {
+  color: #ff6b6b;
 }
 </style> 
