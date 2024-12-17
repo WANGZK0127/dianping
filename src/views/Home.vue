@@ -68,7 +68,7 @@
       <div class="posts-section">
         <div class="container">
           <el-row :gutter="20">
-            <el-col :span="4" v-for="post in posts" :key="post.id">
+            <el-col :span="6" v-for="post in posts" :key="post.id">
               <div class="post-card" @click="checkLogin(() => goToPostDetail(post.id))">
                 <div class="post-image">
                   <el-image :src="post.images[0]" fit="cover" />
@@ -78,11 +78,14 @@
                   <p>{{ post.content }}</p>
                   <div class="post-footer">
                     <div class="author">
-                      <el-avatar :size="24" :src="post.author.avatar" />
-                      <span>{{ post.author.name }}</span>
+                      <el-avatar :size="24" :src="post.icon" />
+                      <span>{{ post.name }}</span>
                     </div>
                     <div class="stats">
-                      <span><el-icon><Pointer /></el-icon> {{ post.likes }}</span>
+                      <span @click.stop="checkLogin(() => handleLike(post))">
+                        <el-icon :class="{ 'liked': post.isLike }"><Pointer /></el-icon>
+                        {{ post.liked }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -148,6 +151,7 @@ import {
 import { userStore } from '../store/user'
 import { ElMessage } from 'element-plus'
 import { getShopTypes } from '../api/shop'
+import { getHotBlogs, likeBlog } from '../api/blog'
 
 export default {
   name: 'HomePage',
@@ -176,6 +180,9 @@ export default {
     const currentLocation = ref('北京')
     const locationDialogVisible = ref(false)
     const categories = ref([])
+    const posts = ref([])
+    const currentPage = ref(1)
+    const loading = ref(false)
 
     // 获取商店类型数据
     const loadShopTypes = async () => {
@@ -195,33 +202,59 @@ export default {
       }
     }
 
+    // 获取博客列表数据
+    const loadBlogPosts = async () => {
+      try {
+        loading.value = true
+        const data = await getHotBlogs(currentPage.value)
+        posts.value = data.map(post => ({
+          id: post.id,
+          title: post.title || '无标题',
+          content: post.content || '暂无内容',
+          images: post.images ? post.images.split(',').filter(img => img).map(img => {
+            // 如果是完整的URL，直接使用
+            if (img.startsWith('http')) {
+              return img
+            }
+            // 否则拼接本地路径
+            return img.startsWith('/') ? img : `/${img}`
+          }) : [],
+          icon: post.icon ? (post.icon.startsWith('http') ? post.icon : `/${post.icon}`) : '',
+          name: post.name,
+          isLike: post.isLike,
+          liked: post.liked || 0
+        }))
+      } catch (error) {
+        console.error('获取博客列表失败:', error)
+        ElMessage.error('获取博客列表失败')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 处理点赞
+    const handleLike = async (post) => {
+      try {
+        await likeBlog(post.id)
+        post.liked = !post.liked
+        if (post.liked) {
+          post.likes++
+        } else {
+          post.likes--
+        }
+        ElMessage.success(post.liked ? '点赞成功' : '取消点赞成功')
+      } catch (error) {
+        console.error('点赞失败:', error)
+        ElMessage.error('点赞失败')
+      }
+    }
+
     // 初始化数据
     onMounted(() => {
       userStore.initUserState()
       loadShopTypes()
+      loadBlogPosts()
     })
-
-    const posts = ref([
-      {
-        id: 1,
-        title: '这家火锅太好吃了',
-        content: '今天和朋友一起去吃了这家火锅，味道真的很不错！服务态度也很好，环境很干净。',
-        images: [
-          'https://via.placeholder.com/300x200',
-          'https://via.placeholder.com/300x200',
-          'https://via.placeholder.com/300x200'
-        ],
-        author: {
-          name: '美食达人',
-          avatar: 'https://via.placeholder.com/40'
-        },
-        category: '美食',
-        likes: 245,
-        comments: 32,
-        createTime: '2023-12-12'
-      },
-      // ... 其他帖子数据 ...
-    ])
 
     const hotCities = [
       '北京', '上海', '广州', '深圳',
@@ -327,7 +360,9 @@ export default {
       handleLocationDialogClose,
       selectLocation,
       showBackToTop,
-      scrollToTop
+      scrollToTop,
+      handleLike,
+      loading
     }
   }
 }
@@ -545,28 +580,29 @@ export default {
 }
 
 .post-image {
-  height: 160px;
+  height: 200px;
   overflow: hidden;
+  background-color: #f5f5f5;
 }
 
-.post-image img {
+.post-image .el-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
 }
 
 .post-content {
-  padding: 12px;
+  padding: 16px;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .post-content h3 {
-  margin: 0 0 8px 0;
-  font-size: 14px;
+  margin: 0 0 12px 0;
+  font-size: 16px;
   color: #333;
   line-height: 1.4;
+  font-weight: 600;
 }
 
 .post-content p {
@@ -613,17 +649,21 @@ export default {
   border-radius: 15px;
   background-color: rgba(64, 158, 255, 0.1);
   transition: all 0.3s;
+  cursor: pointer;
 }
 
 .stats span:hover {
   background-color: rgba(64, 158, 255, 0.2);
   transform: scale(1.05);
-  cursor: pointer;
 }
 
 .stats .el-icon {
   font-size: 16px;
   color: #409EFF;
+}
+
+.stats .el-icon.liked {
+  color: #ff6b6b;
 }
 
 .floating-button {
