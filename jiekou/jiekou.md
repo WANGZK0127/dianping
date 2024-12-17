@@ -980,6 +980,91 @@
 ```javascript
 暂无数据
 ```
+### 查询关注列表博客
+
+> 创建人: 倪克斯
+
+> 更新人: 倪克斯
+
+> 创建时间: 2024-12-16 16:53:24
+
+> 更新时间: 2024-12-16 16:53:24
+
+```text
+暂无描述
+```
+
+**接口状态**
+
+> 已完成
+
+**接口URL**
+
+> http://localhost:8088/blog/myFollow?lastId=1734338884348&offset=
+
+| 环境 | URL  |
+| ---- | ---- |
+
+
+**请求方式**
+
+> GET
+
+**Content-Type**
+
+> none
+
+**请求Header参数**
+
+| 参数名        | 示例值                           | 参数类型 | 是否必填 | 参数描述 |
+| ------------- | -------------------------------- | -------- | -------- | -------- |
+| authorization | 6e982e47f1a8432b9e6398691d1526a4 | String   | 是       | -        |
+
+**请求Query参数**
+
+| 参数名 | 示例值        | 参数类型 | 是否必填 | 参数描述   |
+| ------ | ------------- | -------- | -------- | ---------- |
+| lastId | 1734338884348 | String   | 是       | 当前时间戳 |
+| offset | -             | String   | 否       | 偏移量     |
+
+**认证方式**
+
+> 继承父级
+
+**响应示例**
+
+* 成功(200)
+
+```javascript
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": {
+		"list": [
+			{
+				"id": 3,
+				"shopId": 1,
+				"userId": 2,
+				"icon": null,
+				"name": "userh76plcv5iu",
+				"isLike": false,
+				"title": "测试3",
+				"images": "",
+				"content": "这是测试",
+				"liked": 10,
+				"comments": 1,
+				"createTime": "2024-12-13 15:52:49",
+				"updateTime": "2024-12-13 15:52:49"
+			}
+		],
+		"minTime": 1734338808428,
+		"offset": 1
+	}
+}
+```
+
+* 失败(404)
 
 ## 商店类型
 
@@ -2017,6 +2102,71 @@
 ```javascript
 暂无数据
 ```
+### 我的粉丝
+
+> 创建人: 倪克斯
+
+> 更新人: 倪克斯
+
+> 创建时间: 2024-12-16 16:14:09
+
+> 更新时间: 2024-12-16 16:14:11
+
+```text
+暂无描述
+```
+
+**接口状态**
+
+> 已完成
+
+**接口URL**
+
+> http://localhost:8088/follow/followMe
+
+| 环境 | URL  |
+| ---- | ---- |
+
+
+**请求方式**
+
+> GET
+
+**Content-Type**
+
+> none
+
+**请求Header参数**
+
+| 参数名        | 示例值                           | 参数类型 | 是否必填 | 参数描述 |
+| ------------- | -------------------------------- | -------- | -------- | -------- |
+| authorization | 6e982e47f1a8432b9e6398691d1526a4 | String   | 是       | -        |
+
+**认证方式**
+
+> 继承父级
+
+**响应示例**
+
+* 成功(200)
+
+```javascript
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": [
+		{
+			"id": 2,
+			"name": "userh76plcv5iu",
+			"icon": null
+		}
+	]
+}
+```
+
+* 
+
 ### 查询博客内商铺信息
 
 > 创建人: 倪克斯
@@ -2075,6 +2225,82 @@
 		"images": "https://qcloud.dpfile.com/pc/jiclIsCKmOI2arxKN1Uf0Hx3PucIJH8q0QSz-Z8llzcN56-_QiKuOvyio1OOxsRtFoXqu0G3iT2T27qat3WhLVEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vfCF2ubeXzk49OsGrXt_KYDCngOyCwZK-s3fqawWswzk.jpg,https://qcloud.dpfile.com/pc/IOf6VX3qaBgFXFVgp75w-KKJmWZjFc8GXDU8g9bQC6YGCpAmG00QbfT4vCCBj7njuzFvxlbkWx5uwqY2qcjixFEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vmIU_8ZGOT1OjpJmLxG6urQ.jpg",
 		"score": 37,
 		"avgPrice": 80
+	}
+}
+```
+
+* 失败(404)
+
+###  商铺详情
+
+> 创建人: 倪克斯
+
+> 更新人: 倪克斯
+
+> 创建时间: 2024-12-17 17:01:19
+
+> 更新时间: 2024-12-17 17:01:57
+
+```text
+暂无描述
+```
+
+**接口状态**
+
+> 已完成
+
+**接口URL**
+
+> http://localhost:8088/shop/detail?id=1
+
+| 环境 | URL  |
+| ---- | ---- |
+
+
+**请求方式**
+
+> GET
+
+**Content-Type**
+
+> none
+
+**请求Query参数**
+
+| 参数名 | 示例值 | 参数类型 | 是否必填 | 参数描述 |
+| ------ | ------ | -------- | -------- | -------- |
+| id     | 1      | Integer  | 是       | 商铺id   |
+
+**认证方式**
+
+> 继承父级
+
+**响应示例**
+
+* 成功(200)
+
+```javascript
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": {
+		"id": 1,
+		"name": "113茶餐厅",
+		"typeId": 1,
+		"images": "https://qcloud.dpfile.com/pc/jiclIsCKmOI2arxKN1Uf0Hx3PucIJH8q0QSz-Z8llzcN56-_QiKuOvyio1OOxsRtFoXqu0G3iT2T27qat3WhLVEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vfCF2ubeXzk49OsGrXt_KYDCngOyCwZK-s3fqawWswzk.jpg,https://qcloud.dpfile.com/pc/IOf6VX3qaBgFXFVgp75w-KKJmWZjFc8GXDU8g9bQC6YGCpAmG00QbfT4vCCBj7njuzFvxlbkWx5uwqY2qcjixFEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vmIU_8ZGOT1OjpJmLxG6urQ.jpg",
+		"area": "大关",
+		"address": "金华路锦昌文华苑29号",
+		"x": 120.149192,
+		"y": 30.316078,
+		"avgPrice": 80,
+		"sold": 4215,
+		"comments": 3035,
+		"score": 37,
+		"openHours": "10:00-22:00",
+		"createTime": "2021-12-22T18:10:39",
+		"updateTime": "2024-03-26T16:56:18",
+		"distance": null
 	}
 }
 ```
