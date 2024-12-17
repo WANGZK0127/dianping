@@ -1,49 +1,46 @@
 <template>
   <div class="post-detail">
-    <div class="post-container">
-      <div class="post-header">
+    <div class="container">
+      <!-- 博客内容区域 -->
+      <div class="blog-content">
+        <h1 class="title">{{ blog.title }}</h1>
+        
         <div class="author-info">
-          <el-avatar :src="post.author?.avatar" :size="50" />
+          <el-avatar :size="40" :src="blog.icon" />
           <div class="author-meta">
-            <h3 class="author-name">{{ post.author?.name }}</h3>
-            <span class="post-time">{{ post.createTime }}</span>
+            <div class="name">{{ blog.name }}</div>
+            <div class="time">{{ formatTime(blog.createTime) }}</div>
+          </div>
+          <div class="actions">
+            <span class="like-btn" @click="handleLike">
+              <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
+              {{ blog.liked }}
+            </span>
           </div>
         </div>
-        <el-tag size="large" effect="plain">{{ post.category }}</el-tag>
-      </div>
 
-      <div class="post-content">
-        <h1 class="post-title">{{ post.title }}</h1>
-        <p class="content-text">{{ post.content }}</p>
+        <div class="content">{{ blog.content }}</div>
 
-        <div class="post-images" v-if="post.images?.length">
-          <el-image v-for="(image, index) in post.images" :key="index" :src="image" :preview-src-list="post.images"
-            fit="cover" class="detail-image" />
+        <!-- 图片展示区 -->
+        <div class="images" v-if="blog.images && blog.images.length">
+          <el-image 
+            v-for="(img, index) in blog.images" 
+            :key="index"
+            :src="img"
+            :preview-src-list="blog.images"
+            fit="cover"
+          />
         </div>
       </div>
 
-      <div class="post-stats">
-        <div class="stat-item">
-          <el-icon>
-            <Star />
-          </el-icon>
-          <span>{{ post.likes }} 赞</span>
-        </div>
-        <div class="stat-item">
-          <el-icon>
-            <ChatDotRound />
-          </el-icon>
-          <span>{{ post.comments }} 评论</span>
-        </div>
-      </div>
-
-      <div class="comments-section">
-        <h2>评论区</h2>
-        <div class="comment-input">
-          <el-input v-model="commentText" type="textarea" :rows="2" placeholder="写下你的评论..." />
-          <el-button type="primary" @click="submitComment" :disabled="!commentText.trim()">
-            发表评论
-          </el-button>
+      <!-- 点赞用户列表 -->
+      <div class="likes-section" v-if="likeUsers.length">
+        <h3>点赞用户</h3>
+        <div class="like-users">
+          <div v-for="user in likeUsers" :key="user.id" class="like-user">
+            <el-avatar :size="32" :src="user.icon" />
+            <span>{{ user.name }}</span>
+          </div>
         </div>
       </div>
     </div>
@@ -52,94 +49,101 @@
 
 <script>
 import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
-import { Star, ChatDotRound } from '@element-plus/icons-vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { Pointer } from '@element-plus/icons-vue'
+import { getBlogById, likeBlog, getBlogLikes } from '../api/blog'
+import { userStore } from '../store/user'
 
 export default {
-  name: 'PostDetailPage',
-  components: {
-    Star,
-    ChatDotRound
-  },
+  name: 'PostDetail',
+  components: { Pointer },
   setup() {
     const route = useRoute()
-    const post = ref({})
-    const commentText = ref('')
+    const router = useRouter()
+    const blog = ref({})
+    const likeUsers = ref([])
 
-    onMounted(() => {
-      // 模拟从服务器获取帖子数据
-      const mockPosts = {
-        1: {
-          id: 1,
-          title: '这家火锅太赞了！',
-          content: '和朋友一起去的，锅底特别正宗，服务态度很好，价格也实惠。强烈推荐大家去尝试！',
-          images: [
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600'
-          ],
-          author: {
-            name: '美食达人',
-            avatar: 'https://via.placeholder.com/100'
-          },
-          category: '美食',
-          likes: 328,
-          comments: 45,
-          createTime: '2023-12-12'
-        },
-        2: {
-          id: 2,
-          title: '周末欢乐游',
-          content: '带着孩子们去了欢乐谷，玩了很多项目，孩子们都很开心。园区很干净，工作人员也很热情。',
-          images: [
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600'
-          ],
-          author: {
-            name: '快乐旅行家',
-            avatar: 'https://via.placeholder.com/100'
-          },
-          category: '旅游',
-          likes: 256,
-          comments: 32,
-          createTime: '2023-12-11'
-        },
-        3: {
-          id: 3,
-          title: '五星级酒店体验',
-          content: '入住体验非常好，房间宽敞明亮，服务周到，早餐种类丰富。位置也很便利，周边设施齐全。',
-          images: [
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600',
-            'https://via.placeholder.com/800x600'
-          ],
-          author: {
-            name: '生活品鉴师',
-            avatar: 'https://via.placeholder.com/100'
-          },
-          category: '酒店',
-          likes: 198,
-          comments: 28,
-          createTime: '2023-12-10'
-        }
-      }
-      // 根据路由参数获取对应的帖子数据
-      const postId = parseInt(route.params.id)
-      post.value = mockPosts[postId] || {}
-    })
-
-    const submitComment = () => {
-      if (!commentText.value.trim()) return
-      ElMessage.success('评论发表成功')
-      commentText.value = ''
+    // 格式化时间
+    const formatTime = (timestamp) => {
+      if (!timestamp) return ''
+      const date = new Date(timestamp)
+      return date.toLocaleString()
     }
 
+    // 获取博客详情
+    const loadBlogDetail = async () => {
+      try {
+        const data = await getBlogById(route.params.id)
+        blog.value = {
+          ...data,
+          images: data.images ? data.images.split(',').filter(img => img).map(img => {
+            if (img.startsWith('http')) return img
+            return img.startsWith('/') ? img : `/${img}`
+          }) : [],
+          icon: data.icon ? (data.icon.startsWith('http') ? data.icon : `/${data.icon}`) : '',
+          liked: data.liked || 0
+        }
+      } catch (error) {
+        console.error('获取博客详情失败:', error)
+        ElMessage.error('获取博客详情失败')
+      }
+    }
+
+    // 获取点赞用户列表
+    const loadLikeUsers = async () => {
+      try {
+        const data = await getBlogLikes(route.params.id)
+        likeUsers.value = data.map(user => ({
+          id: user.id,
+          name: user.nickName,
+          icon: user.icon ? (user.icon.startsWith('http') ? user.icon : `/${user.icon}`) : ''
+        }))
+      } catch (error) {
+        console.error('获取点赞用户列表失败:', error)
+      }
+    }
+
+    // 处理点赞
+    const handleLike = async () => {
+      if (!userStore.isLoggedIn.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+
+      try {
+        await likeBlog(blog.value.id)
+        blog.value.isLike = !blog.value.isLike
+        if (blog.value.isLike) {
+          blog.value.liked++
+        } else {
+          blog.value.liked--
+        }
+        // 重新加载点赞用户列表
+        loadLikeUsers()
+        ElMessage.success(blog.value.isLike ? '点赞成功' : '取消点赞成功')
+      } catch (error) {
+        if (error.response?.status === 401) {
+          ElMessage.warning('请先登录')
+          router.push('/login')
+        } else {
+          console.error('点赞失败:', error)
+          ElMessage.error('点赞失败')
+        }
+      }
+    }
+
+    onMounted(() => {
+      loadBlogDetail()
+      loadLikeUsers()
+    })
+
     return {
-      post,
-      commentText,
-      submitComment
+      blog,
+      likeUsers,
+      formatTime,
+      handleLike
     }
   }
 }
@@ -147,115 +151,135 @@ export default {
 
 <style scoped>
 .post-detail {
-  min-height: 100vh;
+  padding: 20px 0;
   background-color: #f5f5f5;
-  padding: 20px;
+  min-height: calc(100vh - 60px);
 }
 
-.post-container {
+.container {
   max-width: 800px;
   margin: 0 auto;
+  padding: 20px;
   background: #fff;
   border-radius: 8px;
-  padding: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.post-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
+.blog-content {
+  margin-bottom: 30px;
+}
+
+.title {
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
 }
 
 .author-info {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eee;
 }
 
 .author-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex: 1;
 }
 
-.author-name {
-  margin: 0;
-  font-size: 18px;
-  font-weight: bold;
-}
-
-.post-time {
-  color: #999;
-  font-size: 14px;
-}
-
-.post-content {
-  margin-bottom: 24px;
-}
-
-.post-title {
-  font-size: 24px;
-  margin-bottom: 16px;
+.name {
+  font-size: 16px;
+  font-weight: 500;
   color: #333;
 }
 
-.content-text {
+.time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+}
+
+.like-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 15px;
+  background-color: rgba(64, 158, 255, 0.1);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.like-btn:hover {
+  background-color: rgba(64, 158, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.like-btn .el-icon {
+  font-size: 16px;
+  color: #409EFF;
+}
+
+.like-btn .el-icon.liked {
+  color: #ff6b6b;
+}
+
+.content {
   font-size: 16px;
   line-height: 1.8;
-  color: #666;
+  color: #333;
   margin-bottom: 20px;
 }
 
-.post-images {
+.images {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 16px;
-  margin-bottom: 24px;
+  margin-top: 20px;
 }
 
-.detail-image {
+.images .el-image {
   width: 100%;
   height: 200px;
   border-radius: 8px;
   cursor: pointer;
 }
 
-.post-stats {
-  display: flex;
-  gap: 24px;
-  padding: 16px 0;
+.likes-section {
+  margin-top: 30px;
+  padding-top: 20px;
   border-top: 1px solid #eee;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 24px;
 }
 
-.stat-item {
+.likes-section h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.like-users {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.like-user {
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 8px 16px;
+  background: #f5f5f5;
+  border-radius: 20px;
+}
+
+.like-user span {
+  font-size: 14px;
   color: #666;
-  font-size: 16px;
-}
-
-.comments-section {
-  margin-top: 24px;
-}
-
-.comments-section h2 {
-  font-size: 20px;
-  margin-bottom: 16px;
-  color: #333;
-}
-
-.comment-input {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.comment-input .el-button {
-  align-self: flex-end;
 }
 </style>
