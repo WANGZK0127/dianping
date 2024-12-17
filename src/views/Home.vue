@@ -20,23 +20,33 @@
       </div>
       <div class="nav-right">
         <template v-if="userStore.isLoggedIn.value">
-          <el-dropdown>
+          <el-dropdown trigger="click">
             <span class="user-profile">
               <el-avatar :size="32" :src="userStore.userInfo.value.avatar" />
               <span class="username">{{ userStore.userInfo.value.username }}</span>
               <el-icon><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item @click="goToUserCenter">个人中心</el-dropdown-item>
-                <el-dropdown-item @click="handleLogout">退出登录</el-dropdown-item>
+              <el-dropdown-menu class="custom-dropdown">
+                <el-dropdown-item class="dropdown-item">
+                  <el-icon><User /></el-icon>
+                  <span @click="goToUserCenter">个人中心</span>
+                </el-dropdown-item>
+                <div class="dropdown-divider"></div>
+                <el-dropdown-item class="dropdown-item">
+                  <el-icon><SwitchButton /></el-icon>
+                  <span @click="handleLogout">退出登录</span>
+                </el-dropdown-item>
               </el-dropdown-menu>
             </template>
           </el-dropdown>
         </template>
         <template v-else>
-          <router-link to="/login" class="login-btn">登录</router-link>
-          <router-link to="/register" class="register-btn">注册</router-link>
+          <div class="auth-buttons">
+            <router-link to="/login" class="login-btn">登录</router-link>
+            <div class="divider"></div>
+            <router-link to="/register" class="register-btn">注册</router-link>
+          </div>
         </template>
       </div>
     </div>
@@ -72,8 +82,7 @@
                       <span>{{ post.author.name }}</span>
                     </div>
                     <div class="stats">
-                      <span><el-icon><ChatDotRound /></el-icon> {{ post.comments }}</span>
-                      <span><el-icon><Star /></el-icon> {{ post.likes }}</span>
+                      <span><el-icon><Pointer /></el-icon> {{ post.likes }}</span>
                     </div>
                   </div>
                 </div>
@@ -133,7 +142,8 @@ import {
   Search, ArrowDown, Food, Headset, 
   ScaleToOriginal, Star, Location, House, 
   Present, GobletSquareFull, Film, 
-  Basketball, ChatDotRound, Plus, Top 
+  Basketball, Plus, Top, Pointer,
+  User, SwitchButton 
 } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { ElMessage } from 'element-plus'
@@ -154,9 +164,11 @@ export default {
     GobletSquareFull,
     Film,
     Basketball,
-    ChatDotRound,
     Plus,
-    Top
+    Top,
+    Pointer,
+    User,
+    SwitchButton
   },
   setup() {
     const router = useRouter()
@@ -390,11 +402,32 @@ export default {
   color: #333;
 }
 
+.auth-buttons {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 6px 16px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(64, 158, 255, 0.1);
+}
+
+.divider {
+  width: 1px;
+  height: 14px;
+  background-color: #e0e0e0;
+  margin: 0 12px;
+}
+
 .login-btn,
 .register-btn {
   text-decoration: none;
-  margin-left: 16px;
   font-size: 14px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
 }
 
 .login-btn {
@@ -403,6 +436,16 @@ export default {
 
 .register-btn {
   color: #67C23A;
+}
+
+.login-btn:hover,
+.register-btn:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+.register-btn:hover {
+  background-color: rgba(103, 194, 58, 0.1);
 }
 
 .main-content {
@@ -557,15 +600,30 @@ export default {
 
 .stats {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
 }
 
 .stats span {
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  color: #999;
+  font-size: 14px;
+  color: #666;
+  padding: 4px 8px;
+  border-radius: 15px;
+  background-color: rgba(64, 158, 255, 0.1);
+  transition: all 0.3s;
+}
+
+.stats span:hover {
+  background-color: rgba(64, 158, 255, 0.2);
+  transform: scale(1.05);
+  cursor: pointer;
+}
+
+.stats .el-icon {
+  font-size: 16px;
+  color: #409EFF;
 }
 
 .floating-button {
@@ -634,5 +692,47 @@ export default {
   width: 40px;
   height: 40px;
   object-fit: contain;
+}
+
+.custom-dropdown {
+  padding: 8px;
+  min-width: 150px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin: 4px 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(64, 158, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.dropdown-item .el-icon {
+  font-size: 18px;
+  color: #409EFF;
+}
+
+.dropdown-item span {
+  font-size: 14px;
+  color: #333;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background-color: rgba(0, 0, 0, 0.1);
+  margin: 8px 0;
 }
 </style> 
