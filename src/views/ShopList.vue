@@ -110,7 +110,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowLeft, ArrowDown, Search } from '@element-plus/icons-vue'
-import { getShopsByType, getShopTypes } from '../api/shop'
+import { getShopsByType, getShopTypes, searchShops } from '../api/shop'
 import { ElMessage } from 'element-plus'
 
 export default {
@@ -207,16 +207,45 @@ export default {
 
     // 搜索相关
     const searchText = ref('')
-    const hotSearches = ref(['火锅', '烤肉', '奶茶', '小吃', '川菜'])
+    const hotSearches = ref(['火锅', '烤肉', '奶茶', 'KTV', '川菜'])
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
       if (!searchText.value.trim()) {
         ElMessage.warning('请输入搜索内容')
         return
       }
-      // TODO: 实现搜索功能
-      console.log('搜索:', searchText.value)
+      
+      try {
+        loading.value = true
+        const data = await searchShops(searchText.value, currentPage.value)
+        shops.value = data.map(shop => {
+          const normalizedScore = (shop.score / 10).toFixed(1)
+          return {
+            ...shop,
+            images: shop.images ? shop.images.split(',').map(img => {
+              if (img.startsWith('http')) {
+                return img
+              }
+              return img.startsWith('/') ? img : `/${img}`
+            }) : [],
+            score: parseFloat(normalizedScore)
+          }
+        })
+        total.value = shops.value.length * 2
+      } catch (error) {
+        console.error('搜索商铺失败:', error)
+        ElMessage.error('搜索商铺失败')
+      } finally {
+        loading.value = false
+      }
     }
+
+    // 监听搜索文本变化，当清空时恢复原列表
+    watch(searchText, (newValue) => {
+      if (!newValue.trim() && typeId.value) {
+        loadShops()
+      }
+    })
 
     return {
       router,
