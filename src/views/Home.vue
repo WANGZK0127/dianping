@@ -57,7 +57,7 @@
           <div class="shop-type-grid">
             <div v-for="category in categories" :key="category.name" 
                  class="category-item" 
-                 @click="handleCategoryClick(category.name)">
+                 @click="handleCategoryClick(category)">
               <img :src="category.icon" class="category-icon" alt="category.name" />
               <span>{{ category.name }}</span>
             </div>
@@ -290,9 +290,14 @@ export default {
       console.log('搜索:', searchText.value)
     }
 
-    // 处理分类点击
+    // 处���分类点击
     const handleCategoryClick = (category) => {
-      router.push(`/category/${encodeURIComponent(category)}`)
+      console.log('点击分类:', category.name, 'ID:', category.id)
+      router.push({
+        name: 'ShopList',
+        params: { type: category.name },
+        query: { typeId: category.id }
+      })
     }
 
     // 跳转到帖子详情

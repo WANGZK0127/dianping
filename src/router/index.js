@@ -8,6 +8,7 @@ import CreatePost from '../views/CreatePost.vue'
 import ShopDetail from '../views/ShopDetail.vue'
 import UserCenter from '../views/UserCenter.vue'
 import { userStore } from '../store/user'
+import ShopList from '../views/ShopList.vue'
 
 const routes = [
   {
@@ -36,11 +37,6 @@ const routes = [
     component: PostDetail
   },
   {
-    path: '/category/:category',
-    name: 'CategoryPage',
-    component: CategoryPage
-  },
-  {
     path: '/create-post',
     name: 'CreatePost',
     component: CreatePost,
@@ -51,6 +47,11 @@ const routes = [
     name: 'UserCenter',
     component: UserCenter,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/category/:type',
+    name: 'ShopList',
+    component: ShopList
   }
 ]
 
