@@ -1,11 +1,29 @@
 <template>
   <div class="shop-list">
     <div class="nav-bar">
-      <div class="back" @click="router.back()">
+      <div class="back" @click="goHome">
         <el-icon><ArrowLeft /></el-icon>
-        返回
+        返回首页
       </div>
-      <div class="title">{{ currentType }}</div>
+      <div class="title">
+        <el-dropdown @command="handleTypeChange" trigger="click">
+          <span class="type-selector">
+            {{ currentType }}
+            <el-icon><ArrowDown /></el-icon>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item 
+                v-for="type in shopTypes" 
+                :key="type.id"
+                :command="type"
+              >
+                {{ type.name }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+      </div>
     </div>
 
     <div class="main-content">
@@ -24,9 +42,9 @@
                       v-model="shop.score"
                       disabled
                       text-color="#ff9900"
-                      :max="50"
+                      :max="5"
                       :show-score="true"
-                      :score-template="shop.score/10 + '分'"
+                      :score-template="(shop.score).toFixed(1) + '分'"
                     />
                   </div>
                   <div class="price">人均 ¥{{ shop.avgPrice }}</div>
@@ -61,14 +79,15 @@
 <script>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft } from '@element-plus/icons-vue'
-import { getShopsByType } from '../api/shop'
+import { ArrowLeft, ArrowDown } from '@element-plus/icons-vue'
+import { getShopsByType, getShopTypes } from '../api/shop'
 import { ElMessage } from 'element-plus'
 
 export default {
   name: 'ShopList',
   components: {
-    ArrowLeft
+    ArrowLeft,
+    ArrowDown
   },
   setup() {
     const route = useRoute()
@@ -78,6 +97,7 @@ export default {
     const pageSize = ref(12)
     const total = ref(0)
     const loading = ref(false)
+    const shopTypes = ref([])
 
     const currentType = computed(() => decodeURIComponent(route.params.type || ''))
     const typeId = computed(() => route.query.typeId)
@@ -88,18 +108,22 @@ export default {
       try {
         loading.value = true
         const data = await getShopsByType(typeId.value, currentPage.value)
-        shops.value = data.map(shop => ({
-          ...shop,
-          images: shop.images ? shop.images.split(',').map(img => {
-            if (img.startsWith('http')) {
-              return img
-            }
-            return img.startsWith('/') ? img : `/${img}`
-          }) : []
-        }))
+        shops.value = data.map(shop => {
+          const normalizedScore = (shop.score / 10).toFixed(1)
+          return {
+            ...shop,
+            images: shop.images ? shop.images.split(',').map(img => {
+              if (img.startsWith('http')) {
+                return img
+              }
+              return img.startsWith('/') ? img : `/${img}`
+            }) : [],
+            score: parseFloat(normalizedScore)
+          }
+        })
         total.value = shops.value.length * 2
       } catch (error) {
-        console.error('获取商铺列表失败:', error)
+        console.error('获取商���列表失败:', error)
         ElMessage.error('获取商铺列表失败')
       } finally {
         loading.value = false
@@ -115,6 +139,24 @@ export default {
       router.push(`/shop/${id}`)
     }
 
+    const loadShopTypes = async () => {
+      try {
+        const data = await getShopTypes()
+        shopTypes.value = data.sort((a, b) => a.sort - b.sort)
+      } catch (error) {
+        console.error('获取商铺类型失败:', error)
+        ElMessage.error('获取商铺类型失败')
+      }
+    }
+
+    const handleTypeChange = (type) => {
+      router.push({
+        name: 'ShopList',
+        params: { type: type.name },
+        query: { typeId: type.id }
+      })
+    }
+
     watch(() => route.query.typeId, (newTypeId) => {
       if (newTypeId) {
         currentPage.value = 1
@@ -123,8 +165,14 @@ export default {
     }, { immediate: true })
 
     onMounted(() => {
+      loadShopTypes()
       loadShops()
     })
+
+    // 返回首页
+    const goHome = () => {
+      router.push('/')
+    }
 
     return {
       router,
@@ -135,7 +183,10 @@ export default {
       loading,
       currentType,
       handlePageChange,
-      goToShopDetail
+      goToShopDetail,
+      shopTypes,
+      handleTypeChange,
+      goHome
     }
   }
 }
@@ -174,6 +225,14 @@ export default {
   font-size: 16px;
   font-weight: 600;
   color: #333;
+  display: flex;
+  align-items: center;
+}
+
+.title .el-dropdown {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
 .main-content {
@@ -260,5 +319,19 @@ export default {
   margin-top: 20px;
   display: flex;
   justify-content: center;
+}
+
+.type-selector {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.type-selector:hover {
+  background-color: #f5f5f5;
 }
 </style> 
