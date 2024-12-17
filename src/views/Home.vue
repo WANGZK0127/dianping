@@ -103,9 +103,7 @@
     </div>
 
     <div class="floating-button back-to-top" @click="scrollToTop" v-show="showBackToTop">
-      <el-button type="info" circle>
-        <el-icon><Top /></el-icon>
-      </el-button>
+        <el-backtop :right="100" :bottom="100" />
     </div>
 
     <el-dialog
