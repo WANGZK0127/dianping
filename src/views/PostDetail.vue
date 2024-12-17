@@ -12,6 +12,24 @@
             <div class="time">{{ formatTime(blog.createTime) }}</div>
           </div>
           <div class="actions">
+            <div v-if="shopInfo" class="shop-info-mini" @click="router.push(`/shop/${shopInfo.id}`)">
+              <el-image class="shop-image-mini" :src="shopInfo.images[0]" fit="cover" />
+              <div class="shop-meta">
+                <div class="shop-name">
+                  <el-icon><Location /></el-icon>
+                  {{ shopInfo.name }}
+                </div>
+                <div class="shop-rating-mini">
+                  <el-rate
+                    v-model="shopInfo.score"
+                    disabled
+                    :max="5"
+                  />
+                  <span class="score">{{ shopInfo.score }}分</span>
+                </div>
+              </div>
+            </div>
+            <span class="divider"></span>
             <span class="like-btn" @click="handleLike">
               <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
               {{ blog.liked }}
@@ -51,18 +69,24 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Pointer } from '@element-plus/icons-vue'
+import { Pointer, Location, ArrowRight } from '@element-plus/icons-vue'
 import { getBlogById, likeBlog, getBlogLikes } from '../api/blog'
+import { getBlogShopInfo } from '../api/blog'
 import { userStore } from '../store/user'
 
 export default {
   name: 'PostDetail',
-  components: { Pointer },
+  components: { 
+    Pointer, 
+    Location,
+    ArrowRight
+  },
   setup() {
     const route = useRoute()
     const router = useRouter()
     const blog = ref({})
     const likeUsers = ref([])
+    const shopInfo = ref(null)
 
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -71,7 +95,7 @@ export default {
       return date.toLocaleString()
     }
 
-    // 获取博客详情
+    // 取博客详情
     const loadBlogDetail = async () => {
       try {
         const data = await getBlogById(route.params.id)
@@ -134,14 +158,35 @@ export default {
       }
     }
 
+    // 获取博客关联的商铺信息
+    const loadShopInfo = async () => {
+      try {
+        const data = await getBlogShopInfo(route.params.id)
+        if (data) {
+          shopInfo.value = {
+            ...data,
+            images: data.images ? data.images.split(',').map(img => {
+              if (img.startsWith('http')) return img
+              return img.startsWith('/') ? img : `/${img}`
+            }) : [],
+            score: (data.score / 10).toFixed(1)
+          }
+        }
+      } catch (error) {
+        console.error('获取商铺信息失败:', error)
+      }
+    }
+
     onMounted(() => {
       loadBlogDetail()
       loadLikeUsers()
+      loadShopInfo()
     })
 
     return {
       blog,
       likeUsers,
+      shopInfo,
       formatTime,
       handleLike
     }
@@ -202,7 +247,15 @@ export default {
 
 .actions {
   display: flex;
+  align-items: center;
   gap: 16px;
+  margin-left: auto;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #eee;
 }
 
 .like-btn {
@@ -281,5 +334,65 @@ export default {
 .like-user span {
   font-size: 14px;
   color: #666;
+}
+
+.shop-info-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.3s;
+}
+
+.shop-info-mini:hover {
+  opacity: 0.8;
+}
+
+.shop-image-mini {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+}
+
+.shop-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.shop-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.shop-name .el-icon {
+  font-size: 14px;
+  color: #666;
+}
+
+.shop-rating-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-rating-mini :deep(.el-rate) {
+  height: 20px;
+  line-height: 20px;
+}
+
+.shop-rating-mini :deep(.el-rate__icon) {
+  font-size: 14px;
+  margin-right: 4px;
+}
+
+.shop-rating-mini .score {
+  font-size: 14px;
+  color: #ff9900;
+  font-weight: 500;
 }
 </style>

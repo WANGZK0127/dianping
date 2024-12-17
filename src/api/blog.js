@@ -39,4 +39,13 @@ export const getBlogOfMe = () => {
     url: '/blog/of/me',
     method: 'get'
   })
+}
+
+// 获取博客内商铺信息
+export const getBlogShopInfo = (id) => {
+  return request({
+    url: '/shop/inBlog',
+    method: 'get',
+    params: { id }
+  })
 } 

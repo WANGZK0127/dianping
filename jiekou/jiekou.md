@@ -2017,3 +2017,66 @@
 ```javascript
 暂无数据
 ```
+### 查询博客内商铺信息
+
+> 创建人: 倪克斯
+
+> 更新人: 倪克斯
+
+> 创建时间: 2024-12-17 11:31:17
+
+> 更新时间: 2024-12-17 11:32:20
+
+```text
+暂无描述
+```
+
+**接口状态**
+
+> 已完成
+
+**接口URL**
+
+> http://localhost:8088/shop/inBlog?id=1
+
+| 环境 | URL  |
+| ---- | ---- |
+
+
+**请求方式**
+
+> GET
+
+**Content-Type**
+
+> none
+
+**请求Query参数**
+
+| 参数名 | 示例值 | 参数类型 | 是否必填 | 参数描述 |
+| ------ | ------ | -------- | -------- | -------- |
+| id     | 1      | Integer  | 是       | 博客id   |
+
+**认证方式**
+
+> 继承父级
+
+**响应示例**
+
+* 成功(200)
+
+```javascript
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": {
+		"name": "113茶餐厅",
+		"images": "https://qcloud.dpfile.com/pc/jiclIsCKmOI2arxKN1Uf0Hx3PucIJH8q0QSz-Z8llzcN56-_QiKuOvyio1OOxsRtFoXqu0G3iT2T27qat3WhLVEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vfCF2ubeXzk49OsGrXt_KYDCngOyCwZK-s3fqawWswzk.jpg,https://qcloud.dpfile.com/pc/IOf6VX3qaBgFXFVgp75w-KKJmWZjFc8GXDU8g9bQC6YGCpAmG00QbfT4vCCBj7njuzFvxlbkWx5uwqY2qcjixFEuLYk00OmSS1IdNpm8K8sG4JN9RIm2mTKcbLtc2o2vmIU_8ZGOT1OjpJmLxG6urQ.jpg",
+		"score": 37,
+		"avgPrice": 80
+	}
+}
+```
+
+* 失败(404)
