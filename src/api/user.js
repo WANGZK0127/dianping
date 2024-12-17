@@ -32,4 +32,20 @@ export function logout() {
     url: '/user/logout',
     method: 'post'
   })
+}
+
+// 获取用户主页信息
+export function getUserMe() {
+  return request({
+    url: '/user/me',
+    method: 'get'
+  })
+}
+
+// 获取用户详细信息
+export function getUserDetailInfo() {
+  return request({
+    url: '/userInfo/info',
+    method: 'get'
+  })
 } 

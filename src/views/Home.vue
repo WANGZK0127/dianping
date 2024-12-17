@@ -290,7 +290,7 @@ export default {
       console.log('搜索:', searchText.value)
     }
 
-    // 处���分类点击
+    // 处理分类点击
     const handleCategoryClick = (category) => {
       console.log('点击分类:', category.name, 'ID:', category.id)
       router.push({

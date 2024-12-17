@@ -84,7 +84,7 @@
       width="500px"
     >
       <el-form :model="editForm" label-width="80px">
-        <el-form-item label="用户名">
+        <el-form-item label="昵称">
           <el-input v-model="editForm.username" />
         </el-form-item>
         <el-form-item label="个人简介">
@@ -107,11 +107,12 @@
 </template>
 
 <script>
-import { ref, reactive, onMounted } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { userStore } from '../store/user'
 import { Edit, Camera, Timer, Star, ChatDotRound, SwitchButton } from '@element-plus/icons-vue'
+import { getUserMe } from '../api/user'
 
 export default {
   name: 'UserCenter',
@@ -138,7 +139,7 @@ export default {
 
     // 编辑表单
     const editForm = reactive({
-      username: userStore.userInfo.value?.username || '',
+      username: '',
       bio: userInfo.bio
     })
 
@@ -166,9 +167,26 @@ export default {
       }
     ])
 
+    // 获取用户信息
+    const loadUserInfo = async () => {
+      try {
+        const res = await getUserMe()
+        if (res.success && res.data) {
+          userStore.updateUserInfo({
+            name: res.data.name,
+            id: res.data.id,
+            icon: res.data.icon
+          })
+        }
+      } catch (error) {
+        console.error('获取用户信息失败:', error)
+        ElMessage.error('获取用户信息失败')
+      }
+    }
+
     // 显示编辑资料对话框
     const showEditProfile = () => {
-      editForm.username = userStore.userInfo.value?.username || ''
+      editForm.username = userStore.userInfo.value?.name || ''
       editForm.bio = userInfo.bio
       editProfileVisible.value = true
     }
@@ -181,7 +199,7 @@ export default {
       }
       userStore.updateUserInfo({
         ...userStore.userInfo.value,
-        username: editForm.username
+        name: editForm.username
       })
       userInfo.bio = editForm.bio
       ElMessage.success('保存成功')
@@ -214,6 +232,12 @@ export default {
     const goToPostDetail = (postId) => {
       router.push(`/post/${postId}`)
     }
+
+    onMounted(async () => {
+      if (userStore.isLoggedIn.value) {
+        await loadUserInfo()
+      }
+    })
 
     return {
       userStore,
@@ -433,5 +457,23 @@ export default {
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.user-details {
+  display: flex;
+  gap: 20px;
+  margin-top: 16px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #666;
+  font-size: 14px;
+}
+
+.detail-item .el-icon {
+  font-size: 16px;
 }
 </style> 

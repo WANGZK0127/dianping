@@ -30,7 +30,7 @@
 
 <script>
 import { reactive, ref } from 'vue'
-import { User, Lock, Phone } from '@element-plus/icons-vue'
+import { Lock, Phone } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { userStore } from '../store/user'
@@ -38,7 +38,7 @@ import { login } from '../api/user'
 
 export default {
   name: 'LoginPage',
-  components: { User, Lock, Phone },
+  components: { Lock, Phone },
   setup() {
     const router = useRouter()
     const loginFormRef = ref(null)
