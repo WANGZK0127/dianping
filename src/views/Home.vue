@@ -57,7 +57,7 @@
           <div class="shop-type-grid">
             <div v-for="category in categories" :key="category.name" 
                  class="category-item" 
-                 @click="checkLogin(() => handleCategoryClick(category.name))">
+                 @click="handleCategoryClick(category.name)">
               <img :src="category.icon" class="category-icon" alt="category.name" />
               <span>{{ category.name }}</span>
             </div>
@@ -69,7 +69,7 @@
         <div class="container">
           <el-row :gutter="20">
             <el-col :span="6" v-for="post in posts" :key="post.id">
-              <div class="post-card" @click="checkLogin(() => goToPostDetail(post.id))">
+              <div class="post-card" @click="goToPostDetail(post.id)">
                 <div class="post-image">
                   <el-image :src="post.images[0]" fit="cover" />
                 </div>
@@ -82,7 +82,7 @@
                       <span>{{ post.name }}</span>
                     </div>
                     <div class="stats">
-                      <span @click.stop="checkLogin(() => handleLike(post))">
+                      <span @click.stop="handleLike(post)">
                         <el-icon :class="{ 'liked': post.isLike }"><Pointer /></el-icon>
                         {{ post.liked }}
                       </span>
@@ -220,7 +220,8 @@ export default {
           icon: post.icon ? (post.icon.startsWith('http') ? post.icon : `/${post.icon}`) : '',
           name: post.name,
           isLike: post.isLike,
-          liked: post.liked || 0
+          liked: post.liked || 0,
+          likes: post.liked || 0
         }))
       } catch (error) {
         console.error('获取博客列表失败:', error)
@@ -232,18 +233,31 @@ export default {
 
     // 处理点赞
     const handleLike = async (post) => {
+      // 点赞需要登录
+      if (!userStore.isLoggedIn.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+
       try {
         await likeBlog(post.id)
-        post.liked = !post.liked
-        if (post.liked) {
+        post.isLike = !post.isLike
+        if (post.isLike) {
           post.likes++
         } else {
           post.likes--
         }
-        ElMessage.success(post.liked ? '点赞成功' : '取消点赞成功')
+        post.liked = post.likes
+        ElMessage.success(post.isLike ? '点赞成功' : '取消点赞成功')
       } catch (error) {
-        console.error('点赞失败:', error)
-        ElMessage.error('点赞失败')
+        if (error.response && error.response.status === 401) {
+          ElMessage.warning('请先登录')
+          router.push('/login')
+        } else {
+          console.error('点赞失败:', error)
+          ElMessage.error('点赞失败')
+        }
       }
     }
 
