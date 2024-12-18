@@ -1,7 +1,12 @@
 <template>
   <div class="home">
     <div class="nav-bar">
-      <el-col :span="4" :offset="21"><div class="nav-right">
+      <div class="nav-left">
+        <router-link to="/" class="logo">
+          <img src="/imgs/image.png" alt="Logo" class="logo-image" />
+        </router-link>
+      </div>
+      <el-col :span="4" :offset="17"><div class="nav-right">
         <template v-if="userStore.isLoggedIn.value">
           <el-dropdown trigger="click">
             <span class="user-profile">
@@ -180,7 +185,7 @@ export default {
           }) : [],
           icon: post.icon ? (post.icon.startsWith('http') ? post.icon : `/${post.icon}`) : '',
           name: post.name,
-          isLike: post.isLike,
+          isLike: userStore.isLoggedIn.value ? post.isLike : false,
           liked: post.liked || 0,
           likes: post.liked || 0,
           comments: post.comments || 0
@@ -278,10 +283,10 @@ export default {
     }
 
     // 处理退出登录
-    const handleLogout = () => {
-      userStore.logout()
+    const handleLogout = async () => {
+      await userStore.logout()
       ElMessage.success('已退出登录')
-      router.push('/login')
+      await loadBlogPosts() // 重新加载博客列表
     }
 
     // 位置相关方法
@@ -355,11 +360,29 @@ export default {
   padding: 10px 20px;
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .nav-left {
   display: flex;
   align-items: center;
+}
+
+.logo {
+  display: block;
+  text-decoration: none;
+  outline: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.logo-image {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .location {

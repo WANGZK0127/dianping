@@ -18,12 +18,24 @@ export const userStore = {
   },
 
   // 退出登录
-  logout() {
-    this.isLoggedIn.value = false
-    this.userInfo.value = null
-    // 清除本地存储
-    localStorage.removeItem('userInfo')
-    localStorage.removeItem('isLoggedIn')
+  async logout() {
+    try {
+      await logout() // 调用后端登出接口
+      this.isLoggedIn.value = false
+      this.userInfo.value = null
+      // 清除本地存储
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('token')
+    } catch (error) {
+      console.error('退出登录失败:', error)
+      // 即使后端请求失败，也要清除本地状态
+      this.isLoggedIn.value = false
+      this.userInfo.value = null
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('isLoggedIn')
+      localStorage.removeItem('token')
+    }
   },
 
   // 初始化用户状态
