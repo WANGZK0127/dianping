@@ -1,24 +1,7 @@
 <template>
   <div class="home">
     <div class="nav-bar">
-      <div class="nav-left">
-        <div class="location" @click="checkLogin(() => showLocationDialog())">
-          <el-icon><Location /></el-icon>
-          <span>{{ currentLocation }}</span>
-          <el-icon><ArrowDown /></el-icon>
-        </div>
-      </div>
-      <div class="nav-center">
-        <div class="search-box">
-          <el-input
-            v-model="searchText"
-            placeholder="搜索商家、商品"
-            :prefix-icon="Search"
-            @keyup.enter="checkLogin(() => handleSearch())"
-          />
-        </div>
-      </div>
-      <div class="nav-right">
+      <el-col :span="4" :offset="21"><div class="nav-right">
         <template v-if="userStore.isLoggedIn.value">
           <el-dropdown trigger="click">
             <span class="user-profile">
@@ -48,7 +31,8 @@
             <router-link to="/register" class="register-btn">注册</router-link>
           </div>
         </template>
-      </div>
+        </div>
+      </el-col>
     </div>
 
     <div class="main-content">
@@ -110,33 +94,7 @@
         <el-backtop :right="100" :bottom="100" />
     </div>
 
-    <el-dialog
-      v-model="locationDialogVisible"
-      title="选择城市"
-      width="30%"
-      :before-close="handleLocationDialogClose"
-    >
-      <div class="location-dialog">
-        <div class="current-city">
-          <h3>当前定位城市</h3>
-          <el-tag size="large">{{ currentLocation }}</el-tag>
-        </div>
-        <div class="hot-cities">
-          <h3>热门城市</h3>
-          <div class="city-grid">
-            <el-tag
-              v-for="city in hotCities"
-              :key="city"
-              size="large"
-              class="city-tag"
-              @click="selectLocation(city)"
-            >
-              {{ city }}
-            </el-tag>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
+  
   </div>
 </template>
 

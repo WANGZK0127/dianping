@@ -60,22 +60,6 @@ const router = createRouter({
   routes
 })
 
-// 导航守卫
-router.beforeEach((to, from, next) => {
-  // 检查该路由是否需要登录权限
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    // 检查用户是否已登录
-    if (!userStore.isLoggedIn.value) {
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
-    } else {
-      next()
-    }
-  } else {
-    next()
-  }
-})
+
 
 export default router 

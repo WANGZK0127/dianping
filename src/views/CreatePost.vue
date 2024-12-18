@@ -109,6 +109,9 @@ export default {
       if (response.success) {
         // 保存完整的图片URL
         uploadFile.url = response.data
+        // 添加预览URL
+        uploadFile.url = `http://localhost${response.data}`
+        console.log('设置的图片URL:', uploadFile.url)
         ElMessage.success('图片上传成功')
       } else {
         ElMessage.error('图片上传失败')
@@ -139,6 +142,10 @@ export default {
         ElMessage.warning('请输入内容')
         return
       }
+      if (!blogForm.value.images.trim()) {
+        ElMessage.warning('请上传图片')
+        return
+      }
 
       try {
         submitting.value = true
@@ -149,15 +156,18 @@ export default {
           .join(',')
 
         const response = await createBlog(blogForm.value)
-        if (response.success) {
+        console.log('发布博客响应:', response)
+        
+        // 如果response是数字，说明发布成功
+        if (typeof response === 'number' || response?.success) {
           ElMessage.success('发布成功')
           router.push('/')
         } else {
-          ElMessage.error(response.message || '发布失败')
+          ElMessage.error((response?.message) || '发布失败，请重试')
         }
       } catch (error) {
         console.error('发布博客失败:', error)
-        ElMessage.error('发布失败')
+        ElMessage.error(error?.message || '发布失败，请重试')
       } finally {
         submitting.value = false
       }
