@@ -85,6 +85,14 @@
               </div>
             </el-col>
           </el-row>
+          
+          <div class="loading-more" v-if="posts.length > 0">
+            <el-empty v-if="!hasMore" description="没有更多数据了" />
+            <div v-else-if="isLoadingMore" class="loading-text">
+              <el-icon class="loading"><Loading /></el-icon>
+              <span>加载中...</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -111,7 +119,7 @@ import {
   ScaleToOriginal, Star, Location, House, 
   Present, GobletSquareFull, Film, 
   Basketball, Plus, Top, Pointer,
-  User, SwitchButton, ChatLineRound 
+  User, SwitchButton, ChatLineRound, Loading 
 } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { ElMessage } from 'element-plus'
@@ -138,7 +146,8 @@ export default {
     Pointer,
     User,
     SwitchButton,
-    ChatLineRound
+    ChatLineRound,
+    Loading
   },
   setup() {
     const router = useRouter()
@@ -149,6 +158,8 @@ export default {
     const posts = ref([])
     const currentPage = ref(1)
     const loading = ref(false)
+    const hasMore = ref(true)
+    const isLoadingMore = ref(false)
 
     // 获取商店类型数据
     const loadShopTypes = async () => {
@@ -169,11 +180,40 @@ export default {
     }
 
     // 获取博客列表数据
-    const loadBlogPosts = async () => {
+    const loadBlogPosts = async (isLoadMore = false) => {
+      // 防止重复加载：正在加载中或已经没有更多数据时直接返回
+      if (loading.value || isLoadingMore.value || (!hasMore.value && isLoadMore)) {
+        return
+      }
+      
       try {
-        loading.value = true
+        if (isLoadMore) {
+          isLoadingMore.value = true
+        } else {
+          loading.value = true
+          // 重置状态
+          currentPage.value = 1
+          hasMore.value = true
+          posts.value = []
+        }
+        
         const data = await getHotBlogs(currentPage.value)
-        posts.value = data.map(post => ({
+        
+        // 判断是否还有更多数据
+        if (!data || data.length === 0) {
+          hasMore.value = false
+          if (isLoadMore) {
+            ElMessage.info('没有更多数据了')
+          }
+          return
+        }
+
+        // 如果返回的数据少于8条，说明是最后一页
+        if (data.length < 8) {
+          hasMore.value = false
+        }
+
+        const formattedPosts = data.map(post => ({
           id: post.id,
           title: post.title || '无标题',
           content: post.content || '暂无内容',
@@ -190,11 +230,21 @@ export default {
           likes: post.liked || 0,
           comments: post.comments || 0
         }))
+
+        if (isLoadMore) {
+          posts.value = [...posts.value, ...formattedPosts]
+        } else {
+          posts.value = formattedPosts
+        }
+
+        currentPage.value++
       } catch (error) {
         console.error('获取博客列表失败:', error)
         ElMessage.error('获取博客列表失败')
+        hasMore.value = false
       } finally {
         loading.value = false
+        isLoadingMore.value = false
       }
     }
 
@@ -228,11 +278,31 @@ export default {
       }
     }
 
+    // 处理滚动加载
+    const handleScroll = () => {
+      const scrollTop = document.documentElement.scrollTop || document.body.scrollTop
+      const clientHeight = document.documentElement.clientHeight
+      const scrollHeight = document.documentElement.scrollHeight
+      
+      // 当距离底部30%时就开始加载下一页，并且确保当前没有正在进行的加载请求
+      if (scrollHeight - scrollTop - clientHeight <= clientHeight * 0.3 && !loading.value && !isLoadingMore.value && hasMore.value) {
+        loadBlogPosts(true)
+      }
+
+      // 控制返回顶部按钮显示
+      showBackToTop.value = scrollTop > 300
+    }
+
     // 初始化数据
     onMounted(() => {
       userStore.initUserState()
       loadShopTypes()
       loadBlogPosts()
+      window.addEventListener('scroll', handleScroll)
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('scroll', handleScroll)
     })
 
     const hotCities = [
@@ -306,24 +376,12 @@ export default {
     // 返回顶部功能
     const showBackToTop = ref(false)
     
-    const handleScroll = () => {
-      showBackToTop.value = window.pageYOffset > 300
-    }
-
     const scrollToTop = () => {
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
       })
     }
-
-    onMounted(() => {
-      window.addEventListener('scroll', handleScroll)
-    })
-
-    onUnmounted(() => {
-      window.removeEventListener('scroll', handleScroll)
-    })
 
     return {
       userStore,
@@ -346,7 +404,9 @@ export default {
       showBackToTop,
       scrollToTop,
       handleLike,
-      loading
+      loading,
+      hasMore,
+      isLoadingMore
     }
   }
 }
@@ -781,5 +841,31 @@ export default {
   height: 1px;
   background-color: rgba(0, 0, 0, 0.1);
   margin: 8px 0;
+}
+
+.loading-more {
+  text-align: center;
+  padding: 20px 0;
+}
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #909399;
+}
+
+.loading-text .loading {
+  animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style> 

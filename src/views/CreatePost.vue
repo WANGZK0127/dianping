@@ -142,7 +142,7 @@ export default {
         ElMessage.warning('请输入内容')
         return
       }
-      if (!blogForm.value.images.trim()) {
+      if (fileList.value.length === 0) {
         ElMessage.warning('请上传图片')
         return
       }
