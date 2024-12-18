@@ -61,6 +61,47 @@
           </div>
         </div>
       </div>
+
+      <!-- 评论区域 -->
+      <div class="comments-section">
+        <h3>评论区</h3>
+        
+        <!-- 评论输入框 -->
+        <div class="comment-input">
+          <el-input
+            v-model="commentContent"
+            type="textarea"
+            :rows="3"
+            placeholder="写下你的评论..."
+          />
+          <el-button 
+            type="primary" 
+            :loading="commenting"
+            @click="submitComment"
+          >
+            发表评论
+          </el-button>
+        </div>
+
+        <!-- 评论列表 -->
+        <div class="comment-list">
+          <el-empty v-if="comments.length === 0" description="暂无评论" />
+          <div v-else class="comment-items">
+            <div v-for="comment in comments" :key="comment.id" class="comment-item">
+              <div class="comment-user">
+                <el-avatar :size="32" :src="comment.icon" />
+                <div class="comment-info">
+                  <span class="username">{{ comment.nickName }}</span>
+                  <span class="time">{{ formatTime(comment.createTime) }}</span>
+                </div>
+              </div>
+              <div class="comment-content">
+                {{ comment.content }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -69,8 +110,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Pointer, Location, ArrowRight } from '@element-plus/icons-vue'
-import { getBlogById, likeBlog, getBlogLikes } from '../api/blog'
+import { Pointer, Location, ArrowRight, ChatLineRound } from '@element-plus/icons-vue'
+import { getBlogById, likeBlog, getBlogLikes, getBlogComments, addComment } from '../api/blog'
 import { getBlogShopInfo } from '../api/blog'
 import { userStore } from '../store/user'
 
@@ -79,7 +120,8 @@ export default {
   components: { 
     Pointer, 
     Location,
-    ArrowRight
+    ArrowRight,
+    ChatLineRound
   },
   setup() {
     const route = useRoute()
@@ -87,6 +129,9 @@ export default {
     const blog = ref({})
     const likeUsers = ref([])
     const shopInfo = ref(null)
+    const comments = ref([])
+    const commentContent = ref('')
+    const commenting = ref(false)
 
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -177,10 +222,54 @@ export default {
       }
     }
 
+    // 获取评论列表
+    const loadComments = async () => {
+      try {
+        const data = await getBlogComments(route.params.id)
+        comments.value = data.map(comment => ({
+          id: comment.id,
+          content: comment.content,
+          createTime: comment.createTime,
+          nickName: comment.user.nickName,
+          icon: comment.user.icon ? (comment.user.icon.startsWith('http') ? comment.user.icon : `/${comment.user.icon}`) : ''
+        }))
+      } catch (error) {
+        console.error('获取评论列表失败:', error)
+      }
+    }
+
+    // 提交评论
+    const submitComment = async () => {
+      if (!userStore.isLoggedIn.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+
+      if (!commentContent.value.trim()) {
+        ElMessage.warning('评论内容不能为空')
+        return
+      }
+
+      try {
+        commenting.value = true
+        await addComment(blog.value.id, commentContent.value.trim())
+        ElMessage.success('评论成功')
+        commentContent.value = ''
+        await loadComments() // 重新加载评论列表
+      } catch (error) {
+        console.error('发表评论失败:', error)
+        ElMessage.error('发表评论失败')
+      } finally {
+        commenting.value = false
+      }
+    }
+
     onMounted(() => {
       loadBlogDetail()
       loadLikeUsers()
       loadShopInfo()
+      loadComments()
     })
 
     return {
@@ -188,7 +277,11 @@ export default {
       likeUsers,
       shopInfo,
       formatTime,
-      handleLike
+      handleLike,
+      comments,
+      commentContent,
+      commenting,
+      submitComment
     }
   }
 }
@@ -394,5 +487,86 @@ export default {
   font-size: 14px;
   color: #ff9900;
   font-weight: 500;
+}
+
+.comments-section {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.comments-section h3 {
+  font-size: 18px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.comment-input {
+  margin-bottom: 30px;
+}
+
+.comment-input .el-button {
+  margin-top: 16px;
+  float: right;
+}
+
+.comment-items {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.comment-item {
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.comment-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.comment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.comment-info .username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.comment-info .time {
+  font-size: 12px;
+  color: #999;
+}
+
+.comment-content {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  margin-left: 44px;
+}
+
+.stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 15px;
+  background-color: rgba(64, 158, 255, 0.1);
+  transition: all 0.3s;
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.stats span:hover {
+  background-color: rgba(64, 158, 255, 0.2);
+  transform: scale(1.05);
 }
 </style>

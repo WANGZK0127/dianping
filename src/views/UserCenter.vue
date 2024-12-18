@@ -29,14 +29,39 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="我的关注" name="follows">
-            <div class="user-list">
-              <el-empty v-if="follows.length === 0" description="暂无关注" />
-              <div v-else class="user-grid">
-                <div v-for="user in follows" :key="user.id" class="user-card">
-                  <el-avatar :size="50" :src="user.icon" />
-                  <span class="username">{{ user.nickName }}</span>
+          <el-tab-pane label="关注列表" name="follows">
+            <div class="follow-blogs">
+              <el-empty v-if="followBlogs.length === 0" description="暂无关注的博客" />
+              <div v-else class="blog-grid">
+                <div v-for="blog in followBlogs" 
+                     :key="blog.id" 
+                     class="blog-card" 
+                     @click="goToBlogDetail(blog.id)">
+                  <div class="blog-image" v-if="blog.images && blog.images.length">
+                    <el-image :src="blog.images[0]" fit="cover" />
+                  </div>
+                  <div class="blog-content">
+                    <div class="blog-author">
+                      <el-avatar :size="24" :src="blog.icon" />
+                      <span>{{ blog.name }}</span>
+                    </div>
+                    <h4>{{ blog.title }}</h4>
+                    <p>{{ blog.content }}</p>
+                    <div class="blog-footer">
+                      <span class="time">{{ formatTime(blog.createTime) }}</span>
+                      <span class="likes">
+                        <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
+                        {{ blog.liked }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+              </div>
+              <!-- 加载更多按钮 -->
+              <div class="load-more" v-if="hasMore">
+                <el-button :loading="loading" @click="loadMoreFollowBlogs">
+                  加载更多
+                </el-button>
               </div>
             </div>
           </el-tab-pane>
@@ -66,6 +91,7 @@ import { Pointer } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { getBlogOfMe } from '../api/blog'
 import { getMyFollows, getMyFans } from '../api/user'
+import { getFollowBlogs } from '../api/blog'
 
 export default {
   name: 'UserCenter',
@@ -76,6 +102,10 @@ export default {
     const follows = ref([])
     const fans = ref([])
     const activeTab = ref('blogs')
+    const followBlogs = ref([])
+    const lastId = ref(Date.now())
+    const loading = ref(false)
+    const hasMore = ref(true)
 
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -141,10 +171,86 @@ export default {
       }
     }
 
+    // 获取关注列表博客
+    const loadFollowBlogs = async () => {
+      try {
+        loading.value = true
+        const { data } = await getFollowBlogs(lastId.value)
+        
+        if (!data || !data.list || data.list.length === 0) {
+          hasMore.value = false
+          return
+        }
+
+        followBlogs.value = data.list.map(blog => ({
+          id: blog.id,
+          title: blog.title || '无标题',
+          content: blog.content || '暂无内容',
+          images: blog.images ? blog.images.split(',').filter(img => img).map(img => {
+            if (img.startsWith('http')) return img
+            return img.startsWith('/') ? img : `/${img}`
+          }) : [],
+          icon: blog.icon || '/default-avatar.png',
+          name: blog.name,
+          isLike: blog.isLike,
+          liked: blog.liked || 0,
+          createTime: blog.createTime
+        }))
+
+        lastId.value = data.minTime
+        hasMore.value = data.list.length > 0
+      } catch (error) {
+        console.error('获取关注博客列表失败:', error)
+        ElMessage.error('获取关注博客列表失败')
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 加载更多关注博客
+    const loadMoreFollowBlogs = async () => {
+      if (loading.value || !hasMore.value) return
+      
+      try {
+        loading.value = true
+        const { data } = await getFollowBlogs(lastId.value)
+        
+        if (!data || !data.list || data.list.length === 0) {
+          hasMore.value = false
+          return
+        }
+
+        const newBlogs = data.list.map(blog => ({
+          id: blog.id,
+          title: blog.title || '无标题',
+          content: blog.content || '暂无内容',
+          images: blog.images ? blog.images.split(',').filter(img => img).map(img => {
+            if (img.startsWith('http')) return img
+            return img.startsWith('/') ? img : `/${img}`
+          }) : [],
+          icon: blog.icon || '/default-avatar.png',
+          name: blog.name,
+          isLike: blog.isLike,
+          liked: blog.liked || 0,
+          createTime: blog.createTime
+        }))
+
+        followBlogs.value.push(...newBlogs)
+        lastId.value = data.minTime
+        hasMore.value = data.list.length > 0
+      } catch (error) {
+        console.error('加载更多关注博客失败:', error)
+        ElMessage.error('加载更多失败')
+      } finally {
+        loading.value = false
+      }
+    }
+
     onMounted(() => {
       loadUserBlogs()
       loadFollows()
       loadFans()
+      loadFollowBlogs()
     })
 
     return {
@@ -154,7 +260,11 @@ export default {
       fans,
       activeTab,
       formatTime,
-      goToBlogDetail
+      goToBlogDetail,
+      followBlogs,
+      hasMore,
+      loading,
+      loadMoreFollowBlogs
     }
   }
 }
@@ -295,5 +405,57 @@ export default {
 .user-card .username {
   margin-left: 10px;
   font-size: 16px;
+}
+
+.follow-blogs {
+  padding: 20px 0;
+}
+
+.blog-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.blog-author span {
+  font-size: 14px;
+  color: #666;
+}
+
+.blog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.time {
+  font-size: 12px;
+  color: #999;
+}
+
+.likes {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.likes .el-icon {
+  font-size: 16px;
+  color: #409EFF;
+}
+
+.likes .el-icon.liked {
+  color: #ff6b6b;
+}
+
+.load-more {
+  text-align: center;
+  margin-top: 20px;
 }
 </style> 

@@ -48,4 +48,46 @@ export const getBlogShopInfo = (id) => {
     method: 'get',
     params: { id }
   })
+}
+
+// 获取关注列表博客
+export const getFollowBlogs = (lastId) => {
+  return request({
+    //URL
+    url: '/blog/myFollow',
+    //请求类型
+    method: 'get',
+    params: {
+      lastId: lastId || Date.now()
+    }
+  })
+}
+
+// 获取博客评论列表
+export const getBlogComments = (id) => {
+  return request({
+    url: `/blog/comment/${id}`,
+    method: 'get'
+  })
+}
+
+// 添加评论
+export const addComment = (blogId, content) => {
+  return request({
+    url: '/blog/comment',
+    method: 'post',
+    data: {
+      blogId,
+      content
+    }
+  })
+}
+
+// 发布博客
+export const createBlog = (blog) => {
+  return request({
+    url: '/blog/',
+    method: 'post',
+    data: blog
+  })
 } 

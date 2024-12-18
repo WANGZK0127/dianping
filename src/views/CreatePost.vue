@@ -1,138 +1,150 @@
 <template>
   <div class="create-post">
-    <el-card class="post-form">
-      <template #header>
-        <div class="card-header">
-          <h2>发布新帖子</h2>
-        </div>
-      </template>
-      
-      <el-form :model="postForm" :rules="rules" ref="postFormRef" label-width="80px">
-        <el-form-item label="标题" prop="title">
-          <el-input v-model="postForm.title" placeholder="请输入标题"></el-input>
+    <div class="container">
+      <div class="post-form">
+        <h2>发布博客</h2>
+        
+        <!-- 标题输入 -->
+        <el-form-item label="标题">
+          <el-input v-model="blogForm.title" placeholder="请输入标题" />
         </el-form-item>
 
-        <el-form-item label="分类" prop="category">
-          <el-select v-model="postForm.category" placeholder="请选择分类">
-            <el-option v-for="category in categories" 
-              :key="category.value" 
-              :label="category.label" 
-              :value="category.value">
-            </el-option>
-          </el-select>
+        <!-- 内容输入 -->
+        <el-form-item label="内容">
+          <el-input
+            v-model="blogForm.content"
+            type="textarea"
+            :rows="6"
+            placeholder="写点什么..."
+          />
         </el-form-item>
 
-        <el-form-item label="内容" prop="content">
-          <el-input v-model="postForm.content" type="textarea" rows="6" placeholder="请输入内容描述"></el-input>
-        </el-form-item>
-
+        <!-- 图片上传 -->
         <el-form-item label="图片">
           <el-upload
-            action="#"
+            v-model:file-list="fileList"
+            action="/api/upload/blog"
             list-type="picture-card"
-            :auto-upload="false"
-            :on-change="handleImageChange"
-            :on-remove="handleImageRemove"
-            :limit="4">
+            :headers="{ authorization: userStore.token }"
+            :on-success="handleUploadSuccess"
+            :before-upload="beforeUpload"
+          >
             <el-icon><Plus /></el-icon>
           </el-upload>
         </el-form-item>
 
-        <el-form-item>
-          <el-button type="primary" @click="submitForm">发布</el-button>
-          <el-button @click="cancelCreate">取消</el-button>
+        <!-- 关联商铺 -->
+        <el-form-item label="关联商铺">
+          <el-select v-model="blogForm.shopId" placeholder="选择关联的商铺">
+            <el-option
+              v-for="shop in shops"
+              :key="shop.id"
+              :label="shop.name"
+              :value="shop.id"
+            />
+          </el-select>
         </el-form-item>
-      </el-form>
-    </el-card>
+
+        <!-- 提交按钮 -->
+        <el-form-item>
+          <el-button type="primary" :loading="submitting" @click="submitBlog">
+            发布
+          </el-button>
+        </el-form-item>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { createBlog } from '../api/blog'
+import { userStore } from '../store/user'
 
 export default {
   name: 'CreatePost',
-  components: {
-    Plus
-  },
+  components: { Plus },
   setup() {
     const router = useRouter()
-    const postFormRef = ref(null)
-    const imageList = ref([])
-
-    const categories = [
-      { value: '美食', label: '美食' },
-      { value: '购物', label: '购物' },
-      { value: '咖啡', label: '咖啡' },
-      { value: '礼品', label: '礼品' },
-      { value: '旅游', label: '旅游' },
-      { value: '酒店', label: '酒店' },
-      { value: '运动', label: '运动' },
-      { value: '娱乐', label: '娱乐' }
-    ]
-
-    const postForm = reactive({
+    const fileList = ref([])
+    const submitting = ref(false)
+    const blogForm = ref({
       title: '',
-      category: '',
-      content: ''
+      content: '',
+      images: '',
+      shopId: null
     })
 
-    const rules = {
-      title: [
-        { required: true, message: '请输入标题', trigger: 'blur' },
-        { min: 2, max: 50, message: '标题长度在2到50个字符之间', trigger: 'blur' }
-      ],
-      category: [
-        { required: true, message: '请选择分类', trigger: 'change' }
-      ],
-      content: [
-        { required: true, message: '请输入内容', trigger: 'blur' },
-        { min: 10, max: 500, message: '内容长度在10到500个字符之间', trigger: 'blur' }
-      ]
+    // 上传前检查
+    const beforeUpload = (file) => {
+      const isImage = file.type.startsWith('image/')
+      const isLt2M = file.size / 1024 / 1024 < 2
+
+      if (!isImage) {
+        ElMessage.error('只能上传图片文件!')
+        return false
+      }
+      if (!isLt2M) {
+        ElMessage.error('图片大小不能超过 2MB!')
+        return false
+      }
+      return true
     }
 
-    const handleImageChange = (file) => {
-      imageList.value.push(file)
-    }
-
-    const handleImageRemove = (file) => {
-      const index = imageList.value.findIndex(item => item.uid === file.uid)
-      if (index !== -1) {
-        imageList.value.splice(index, 1)
+    // 上传成功处理
+    const handleUploadSuccess = (response, file) => {
+      if (response.success) {
+        file.url = response.data
+      } else {
+        ElMessage.error('图片上传失败')
       }
     }
 
-    const submitForm = async () => {
-      if (!postFormRef.value) return
+    // 提交博客
+    const submitBlog = async () => {
+      if (!blogForm.value.title.trim()) {
+        ElMessage.warning('请输入标题')
+        return
+      }
+      if (!blogForm.value.content.trim()) {
+        ElMessage.warning('请输入内容')
+        return
+      }
 
-      await postFormRef.value.validate((valid) => {
-        if (valid) {
-          // TODO: 这里需要调用后端API来保存帖子
-          ElMessage.success('发布成功！')
+      try {
+        submitting.value = true
+        // 处理图片路径
+        blogForm.value.images = fileList.value
+          .map(file => file.url)
+          .filter(url => url)
+          .join(',')
+
+        const response = await createBlog(blogForm.value)
+        if (response.success) {
+          ElMessage.success('发布成功')
           router.push('/')
         } else {
-          return false
+          ElMessage.error(response.message || '发布失败')
         }
-      })
-    }
-
-    const cancelCreate = () => {
-      router.push('/')
+      } catch (error) {
+        console.error('发布博客失败:', error)
+        ElMessage.error('发布失败')
+      } finally {
+        submitting.value = false
+      }
     }
 
     return {
-      postForm,
-      postFormRef,
-      rules,
-      categories,
-      imageList,
-      handleImageChange,
-      handleImageRemove,
-      submitForm,
-      cancelCreate
+      userStore,
+      blogForm,
+      fileList,
+      submitting,
+      beforeUpload,
+      handleUploadSuccess,
+      submitBlog
     }
   }
 }
@@ -140,25 +152,32 @@ export default {
 
 <style scoped>
 .create-post {
+  padding: 20px 0;
+  background-color: #f5f5f5;
+  min-height: calc(100vh - 60px);
+}
+
+.container {
   max-width: 800px;
-  margin: 20px auto;
-  padding: 0 20px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 .post-form {
-  background-color: #fff;
+  background: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.post-form h2 {
+  margin-bottom: 24px;
+  color: #333;
+  font-size: 24px;
 }
 
-.card-header h2 {
-  margin: 0;
-  font-size: 20px;
-  color: #303133;
+.el-form-item {
+  margin-bottom: 24px;
 }
 
 :deep(.el-upload--picture-card) {

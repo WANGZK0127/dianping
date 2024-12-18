@@ -86,6 +86,10 @@
                         <el-icon :class="{ 'liked': post.isLike }"><Pointer /></el-icon>
                         {{ post.liked }}
                       </span>
+                      <span>
+                        <el-icon><ChatLineRound /></el-icon>
+                        {{ post.comments || 0 }}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -144,7 +148,7 @@ import {
   ScaleToOriginal, Star, Location, House, 
   Present, GobletSquareFull, Film, 
   Basketball, Plus, Top, Pointer,
-  User, SwitchButton 
+  User, SwitchButton, ChatLineRound 
 } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { ElMessage } from 'element-plus'
@@ -170,7 +174,8 @@ export default {
     Top,
     Pointer,
     User,
-    SwitchButton
+    SwitchButton,
+    ChatLineRound
   },
   setup() {
     const router = useRouter()
@@ -210,18 +215,17 @@ export default {
           title: post.title || '无标题',
           content: post.content || '暂无内容',
           images: post.images ? post.images.split(',').filter(img => img).map(img => {
-            // 如果是完整的URL，直接使用
             if (img.startsWith('http')) {
               return img
             }
-            // 否则拼接本地路径
             return img.startsWith('/') ? img : `/${img}`
           }) : [],
           icon: post.icon ? (post.icon.startsWith('http') ? post.icon : `/${post.icon}`) : '',
           name: post.name,
           isLike: post.isLike,
           liked: post.liked || 0,
-          likes: post.liked || 0
+          likes: post.liked || 0,
+          comments: post.comments || 0
         }))
       } catch (error) {
         console.error('获取博客列表失败:', error)
