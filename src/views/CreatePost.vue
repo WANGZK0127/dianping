@@ -23,11 +23,14 @@
         <el-form-item label="图片">
           <el-upload
             v-model:file-list="fileList"
-            action="/api/upload/blog"
+            :action="`/api/upload/blog`"
             list-type="picture-card"
-            :headers="{ authorization: userStore.token }"
+            :headers="uploadHeaders"
             :on-success="handleUploadSuccess"
             :before-upload="beforeUpload"
+            :on-error="handleUploadError"
+            name="file"
+            accept="image/*"
           >
             <el-icon><Plus /></el-icon>
           </el-upload>
@@ -57,7 +60,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
@@ -71,6 +74,12 @@ export default {
     const router = useRouter()
     const fileList = ref([])
     const submitting = ref(false)
+    
+    // 计算上传请求头
+    const uploadHeaders = computed(() => ({
+      authorization: userStore.token || ''
+    }))
+
     const blogForm = ref({
       title: '',
       content: '',
@@ -95,11 +104,28 @@ export default {
     }
 
     // 上传成功处理
-    const handleUploadSuccess = (response, file) => {
+    const handleUploadSuccess = (response, uploadFile) => {
+      console.log('上传成功响应:', response)
       if (response.success) {
-        file.url = response.data
+        // 保存完整的图片URL
+        uploadFile.url = response.data
+        ElMessage.success('图片上传成功')
       } else {
         ElMessage.error('图片上传失败')
+        const index = fileList.value.indexOf(uploadFile)
+        if (index !== -1) {
+          fileList.value.splice(index, 1)
+        }
+      }
+    }
+
+    // 上传失败处理
+    const handleUploadError = (error, uploadFile) => {
+      console.error('上传失败:', error)
+      ElMessage.error('图片上传失败，请检查网络连接')
+      const index = fileList.value.indexOf(uploadFile)
+      if (index !== -1) {
+        fileList.value.splice(index, 1)
       }
     }
 
@@ -142,8 +168,10 @@ export default {
       blogForm,
       fileList,
       submitting,
+      uploadHeaders,
       beforeUpload,
       handleUploadSuccess,
+      handleUploadError,
       submitBlog
     }
   }
