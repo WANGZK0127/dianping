@@ -38,15 +38,39 @@
         </el-form-item>
 
         <!-- 关联商铺 -->
-        <el-form-item label="关联商铺">
-          <el-select v-model="blogForm.shopId" placeholder="选择关联的商铺">
-            <el-option
-              v-for="shop in shops"
-              :key="shop.id"
-              :label="shop.name"
-              :value="shop.id"
-            />
-          </el-select>
+        <el-form-item label="商铺">
+          <div class="shop-select-container">
+            <!-- 商铺类型选择 -->
+            <el-select 
+              v-model="selectedShopType" 
+              placeholder="选择商铺类型"
+              @change="handleShopTypeChange"
+              style="width: 150px; margin-right: 10px;"
+            >
+              <el-option
+                v-for="type in shopTypes"
+                :key="type.id"
+                :label="type.name"
+                :value="type.id"
+              />
+            </el-select>
+
+            <!-- 具体商铺选择 -->
+            <el-select 
+              v-model="blogForm.shopId" 
+              placeholder="选择具体商铺"
+              :disabled="!selectedShopType"
+              :loading="loading"
+              style="width: 250px;"
+            >
+              <el-option
+                v-for="shop in shops"
+                :key="shop.id"
+                :label="shop.name"
+                :value="shop.id"
+              />
+            </el-select>
+          </div>
         </el-form-item>
 
         <!-- 提交按钮 -->
@@ -61,11 +85,12 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { createBlog, deleteImage } from '../api/blog'
+import { getShopTypes, getShopsByType } from '../api/shop'
 import { userStore } from '../store/user'
 
 export default {
@@ -75,8 +100,11 @@ export default {
     const router = useRouter()
     const fileList = ref([])
     const submitting = ref(false)
+    const shopTypes = ref([])
     const shops = ref([])
-    
+    const selectedShopType = ref(null)
+    const loading = ref(false)
+
     // 计算上传请求头
     const uploadHeaders = computed(() => ({
       authorization: userStore.token || ''
@@ -205,6 +233,46 @@ export default {
       }
     }
 
+    // 获取商铺类型列表
+    const loadShopTypes = async () => {
+      try {
+        const data = await getShopTypes()
+        shopTypes.value = data || []
+      } catch (error) {
+        console.error('获取商铺类型失败:', error)
+        ElMessage.error('获取商铺类型失败')
+      }
+    }
+
+    // 获取指定类型的商铺列表
+    const loadShopsByType = async (typeId) => {
+      if (!typeId) return
+      
+      try {
+        loading.value = true
+        const data = await getShopsByType(typeId)
+        shops.value = data || []
+      } catch (error) {
+        console.error('获取商铺列表失败:', error)
+        ElMessage.error('获取商铺列表失败')
+        shops.value = []
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 处理商铺类型变化
+    const handleShopTypeChange = async () => {
+      blogForm.value.shopId = null // 清空已选择的商铺
+      if (selectedShopType.value) {
+        await loadShopsByType(selectedShopType.value)
+      }
+    }
+
+    onMounted(() => {
+      loadShopTypes() // 加载商铺类型数据
+    })
+
     return {
       userStore,
       blogForm,
@@ -216,7 +284,11 @@ export default {
       handleUploadError,
       handleRemove,
       submitBlog,
-      shops
+      shopTypes,
+      selectedShopType,
+      shops,
+      handleShopTypeChange,
+      loading
     }
   }
 }
@@ -261,5 +333,15 @@ export default {
 :deep(.el-upload-list--picture-card .el-upload-list__item) {
   width: 120px;
   height: 120px;
+}
+
+.shop-select-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+:deep(.el-select) {
+  width: auto;
 }
 </style> 

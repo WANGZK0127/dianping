@@ -12,9 +12,9 @@
       <!-- 导航标签页和内容区域 -->
       <div class="content-wrapper">
         <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabChange">
-          <el-tab-pane label="我的博客" name="blogs">
+          <el-tab-pane label="笔记" name="blogs">
             <div class="blog-list">
-              <el-empty v-if="blogs.length === 0" description="暂无博客" />
+              <el-empty v-if="blogs.length === 0" description="暂无笔记" />
               <div v-else class="blog-grid">
                 <div v-for="blog in blogs" :key="blog.id" class="blog-card" @click="goToBlogDetail(blog.id)">
                   <div class="blog-image" v-if="blog.images && blog.images.length">
@@ -42,7 +42,7 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="关注列表博客" name="follows">
+          <el-tab-pane label="关注" name="follows">
             <div class="follow-blogs">
               <el-empty v-if="followBlogs.length === 0" description="暂无关注的博客" />
               <div v-else class="blog-grid">
@@ -85,7 +85,7 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="我的粉丝" name="fans">
+          <el-tab-pane label="粉丝" name="fans">
             <div class="fans-list">
               <el-empty v-if="fans.length === 0" description="暂无粉丝" />
               <div v-else class="fans-grid">
