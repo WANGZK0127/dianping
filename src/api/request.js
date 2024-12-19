@@ -3,7 +3,7 @@ import { ElMessage } from 'element-plus'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: '/api', // 统一使用/api作为前缀
+  baseURL: 'http://localhost:8088', // 直接使用后端服务地址
   timeout: 15000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
@@ -19,10 +19,13 @@ service.interceptors.request.use(
     console.log('Request Method:', config.method)
     console.log('Request Headers:', config.headers)
     
-    // 从localStorage获取token
-    const token = localStorage.getItem('token')
-    if (token) {
-      config.headers['authorization'] = token
+    // 如果请求不需要认证，则不添加token
+    if (!config.noAuth) {
+      // 从localStorage获取token
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers['authorization'] = token
+      }
     }
     return config
   },
@@ -37,18 +40,29 @@ service.interceptors.response.use(
   response => {
     // 打印响应信息，便于调试
     console.log('Response:', response.data)
+    console.log('Response Config:', response.config)
+    console.log('Response Status:', response.status)
     
     const res = response.data
-    if (res.success && res.code === 200) {
-      // 如果data为null且success为true，返回整个响应对象
-      if (res.data === null) {
-        return res
+    
+    // 处理空响应的情况
+    if (!res && response.status === 200) {
+      // 对于不需要认证的请求，空响应也认为是成功的
+      if (response.config.noAuth) {
+        return []  // 返回空数组，适用于列表接口
       }
-      return res.data
-    } else {
-      ElMessage.error(res.message || '请求失败')
-      return Promise.reject(new Error(res.message || '请求失败'))
     }
+    
+    // 处理标准响应格式
+    if (res?.success && res?.code === 200) {
+      return res.data
+    }
+    
+    // 处理错误情况
+    const message = res?.message || '请求失败'
+    console.error('Response Error:', message)
+    ElMessage.error(message)
+    return Promise.reject(new Error(message))
   },
   error => {
     // 打印详细错误信息

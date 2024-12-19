@@ -61,7 +61,25 @@ export const getMyFollows = () => {
 // 获取我的粉丝列表
 export const getMyFans = () => {
   return request({
-    url: '/follow/fans',
+    url: '/follow/followMe',
     method: 'get'
   })
-} 
+}
+
+// 关注/取消关注用户
+export const followUser = (id, isFollow) => {
+  return request({
+    url: `/follow/${id}/${isFollow}`,
+    method: 'put'
+  })
+}
+
+// 判断是否关注
+export const isFollow = (id) => {
+  return request({
+    url: `/follow/if/${id}`,
+    method: 'get'
+  })
+}
+
+// ... existing code ... 

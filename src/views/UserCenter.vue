@@ -11,7 +11,7 @@
 
       <!-- 导航标签页和内容区域 -->
       <div class="content-wrapper">
-        <el-tabs v-model="activeTab" class="custom-tabs">
+        <el-tabs v-model="activeTab" class="custom-tabs" @tab-click="handleTabChange">
           <el-tab-pane label="我的博客" name="blogs">
             <div class="blog-list">
               <el-empty v-if="blogs.length === 0" description="暂无博客" />
@@ -42,7 +42,7 @@
             </div>
           </el-tab-pane>
 
-          <el-tab-pane label="关注列表" name="follows">
+          <el-tab-pane label="关注列表博客" name="follows">
             <div class="follow-blogs">
               <el-empty v-if="followBlogs.length === 0" description="暂无关注的博客" />
               <div v-else class="blog-grid">
@@ -86,12 +86,16 @@
           </el-tab-pane>
 
           <el-tab-pane label="我的粉丝" name="fans">
-            <div class="user-list">
+            <div class="fans-list">
               <el-empty v-if="fans.length === 0" description="暂无粉丝" />
-              <div v-else class="user-grid">
-                <div v-for="user in fans" :key="user.id" class="user-card">
-                  <el-avatar :size="50" :src="user.icon" />
-                  <span class="username">{{ user.nickName }}</span>
+              <div v-else class="fans-grid">
+                <div v-for="fan in fans" :key="fan.id" class="fan-card">
+                  <div class="fan-info">
+                    <el-avatar :size="50" :src="fan.icon || '/default-avatar.png'" />
+                    <div class="fan-meta">
+                      <h4>{{ fan.name }}</h4>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -103,14 +107,13 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Pointer, ChatLineRound } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
-import { getBlogOfMe } from '../api/blog'
-import { getMyFollows, getMyFans } from '../api/user'
-import { getFollowBlogs } from '../api/blog'
+import { getBlogOfMe, getFollowBlogs } from '../api/blog'
+import { getMyFans } from '../api/user'
 
 export default {
   name: 'UserCenter',
@@ -118,13 +121,13 @@ export default {
   setup() {
     const router = useRouter()
     const blogs = ref([])
-    const follows = ref([])
-    const fans = ref([])
     const activeTab = ref('blogs')
     const followBlogs = ref([])
+    const fans = ref([])
     const lastId = ref(Date.now())
     const loading = ref(false)
     const hasMore = ref(true)
+    const currentPage = ref(1)
 
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -134,10 +137,22 @@ export default {
     }
 
     // 获取个人博客列表
-    const loadUserBlogs = async () => {
+    const loadUserBlogs = async (isLoadMore = false) => {
+      if (loading.value || (!isLoadMore && blogs.value.length > 0)) return
+      
       try {
-        const data = await getBlogOfMe()
-        blogs.value = data.map(blog => ({
+        loading.value = true
+        const data = await getBlogOfMe(currentPage.value)
+        
+        if (!data || data.length === 0) {
+          hasMore.value = false
+          if (!isLoadMore) {
+            blogs.value = []
+          }
+          return
+        }
+
+        const formattedBlogs = data.map(blog => ({
           id: blog.id,
           title: blog.title || '无标题',
           content: blog.content || '暂无内容',
@@ -150,9 +165,46 @@ export default {
           liked: blog.liked || 0,
           comments: blog.comments || 0
         }))
+
+        if (isLoadMore) {
+          blogs.value.push(...formattedBlogs)
+        } else {
+          blogs.value = formattedBlogs
+        }
+
+        // 如果返回的数据少于8条，说明没有更多数据了
+        hasMore.value = data.length === 8
+        if (hasMore.value) {
+          currentPage.value++
+        }
       } catch (error) {
         console.error('获取个人博客列表失败:', error)
-        ElMessage.error('获取个人��客列表失败')
+        ElMessage.error('获取个人博客列表失败')
+        if (!isLoadMore) {
+          blogs.value = []
+        }
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 加载更多个人博客
+    const loadMoreUserBlogs = () => {
+      if (!hasMore.value || loading.value) return
+      loadUserBlogs(true)
+    }
+
+    // 监听滚动事件
+    const handleScroll = () => {
+      if (activeTab.value !== 'blogs') return
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+      
+      // 当滚动到距离底部100px时加载更多
+      if (documentHeight - scrollTop - windowHeight < 100) {
+        loadMoreUserBlogs()
       }
     }
 
@@ -161,44 +213,15 @@ export default {
       router.push(`/post/${blogId}`)
     }
 
-    // 获取关注列表
-    const loadFollows = async () => {
-      try {
-        const data = await getMyFollows()
-        follows.value = data.map(user => ({
-          id: user.id,
-          nickName: user.nickName,
-          icon: user.icon ? (user.icon.startsWith('http') ? user.icon : `/${user.icon}`) : ''
-        }))
-      } catch (error) {
-        console.error('获取关注列表失败:', error)
-        ElMessage.error('获取关注列表失败')
-      }
-    }
-
-    // 获取粉丝列表
-    const loadFans = async () => {
-      try {
-        const data = await getMyFans()
-        fans.value = data.map(user => ({
-          id: user.id,
-          nickName: user.nickName,
-          icon: user.icon ? (user.icon.startsWith('http') ? user.icon : `/${user.icon}`) : ''
-        }))
-      } catch (error) {
-        console.error('获取粉丝列表失败:', error)
-        ElMessage.error('获取粉丝列表失败')
-      }
-    }
-
-    // 获取关注列表客
+    // 获取关注列表博客
     const loadFollowBlogs = async () => {
       try {
         loading.value = true
-        const { data } = await getFollowBlogs(lastId.value)
+        const data = await getFollowBlogs(Date.now())
         
         if (!data || !data.list || data.list.length === 0) {
           hasMore.value = false
+          followBlogs.value = []
           return
         }
 
@@ -221,8 +244,10 @@ export default {
         lastId.value = data.minTime
         hasMore.value = data.list.length > 0
       } catch (error) {
-        console.error('获取关注博客列表失败:', error)
+        console.error('获取关注博���列表失败:', error)
         ElMessage.error('获取关注博客列表失败')
+        followBlogs.value = []
+        hasMore.value = false
       } finally {
         loading.value = false
       }
@@ -234,7 +259,7 @@ export default {
       
       try {
         loading.value = true
-        const { data } = await getFollowBlogs(lastId.value)
+        const data = await getFollowBlogs(lastId.value)
         
         if (!data || !data.list || data.list.length === 0) {
           hasMore.value = false
@@ -263,30 +288,56 @@ export default {
       } catch (error) {
         console.error('加载更多关注博客失败:', error)
         ElMessage.error('加载更多失败')
+        hasMore.value = false
       } finally {
         loading.value = false
       }
     }
 
+    // 获取粉丝列表
+    const loadFans = async () => {
+      try {
+        const data = await getMyFans()
+        console.log('粉丝数据:', data) // 添加日志查看数据结构
+        fans.value = data || []
+      } catch (error) {
+        console.error('获取粉丝列表失败:', error)
+        ElMessage.error('获取粉丝列表失败')
+        fans.value = []
+      }
+    }
+
+    // 监听标签页切换
+    const handleTabChange = (tab) => {
+      if (tab.props.name === 'fans') {
+        loadFans()
+      }
+    }
+
     onMounted(() => {
       loadUserBlogs()
-      loadFollows()
-      loadFans()
       loadFollowBlogs()
+      // 添加滚动监听到window
+      window.addEventListener('scroll', handleScroll)
+    })
+
+    onUnmounted(() => {
+      // 移除window的滚动监听
+      window.removeEventListener('scroll', handleScroll)
     })
 
     return {
       userStore,
       blogs,
-      follows,
-      fans,
       activeTab,
       formatTime,
       goToBlogDetail,
       followBlogs,
       hasMore,
       loading,
-      loadMoreFollowBlogs
+      loadMoreUserBlogs,
+      fans,
+      handleTabChange
     }
   }
 }
@@ -488,5 +539,52 @@ export default {
 .load-more {
   text-align: center;
   margin-top: 20px;
+}
+
+.fans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 20px;
+}
+
+.fan-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+}
+
+.fan-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.fan-meta {
+  flex: 1;
+}
+
+.fan-meta h4 {
+  margin: 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.fan-meta p {
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: #999;
+}
+
+.blog-list {
+  padding: 20px;
+}
+
+.blog-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
 }
 </style> 

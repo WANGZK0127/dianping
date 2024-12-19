@@ -5,13 +5,23 @@
       <div class="blog-content">
         <h1 class="title">{{ blog.title }}</h1>
         
-        <div class="author-info">
-          <el-avatar :size="40" :src="blog.icon" />
-          <div class="author-meta">
-            <div class="name">{{ blog.name }}</div>
-            <div class="time">{{ formatTime(blog.createTime) }}</div>
+        <div class="blog-header">
+          <div class="author-info">
+            <el-avatar :size="40" :src="blog.icon" />
+            <div class="author-meta">
+              <div class="name">{{ blog.name }}</div>
+              <div class="time">{{ formatTime(blog.createTime) }}</div>
+            </div>
           </div>
           <div class="actions">
+            <el-button 
+              type="primary" 
+              :class="{ 'is-following': blog.isFollow }"
+              @click="handleFollow"
+              size="small"
+            >
+              {{ blog.isFollow ? '已关注' : '关注' }}
+            </el-button>
             <div v-if="shopInfo" class="shop-info-mini" @click="router.push(`/shop/${shopInfo.id}`)">
               <el-image class="shop-image-mini" :src="shopInfo.images[0]" fit="cover" />
               <div class="shop-meta">
@@ -210,6 +220,7 @@ import { Pointer, Location, ArrowRight, ChatLineRound } from '@element-plus/icon
 import { getBlogById, likeBlog, getBlogLikes, getBlogComments, addComment } from '../api/blog'
 import { getBlogShopInfo } from '../api/blog'
 import { userStore } from '../store/user'
+import { followUser, isFollow } from '../api/user'
 
 export default {
   name: 'PostDetail',
@@ -243,14 +254,28 @@ export default {
     const loadBlogDetail = async () => {
       try {
         const data = await getBlogById(route.params.id)
+        if (!data || typeof data !== 'object') {
+          ElMessage.error('获取博客详情失败')
+          return
+        }
         blog.value = {
-          ...data,
+          id: data.id || route.params.id,
+          shopId: data.shopId || null,
+          userId: data.userId || null,
+          icon: data.icon || '',
+          name: data.name || '未知用户',
+          isLike: data.isLike || false,
+          title: data.title || '',
+          content: data.content || '',
           images: data.images ? data.images.split(',').filter(img => img).map(img => {
             if (img.startsWith('http')) return img
             return img.startsWith('/') ? img : `/${img}`
           }) : [],
-          icon: data.icon ? (data.icon.startsWith('http') ? data.icon : `/${data.icon}`) : '',
-          liked: data.liked || 0
+          liked: data.liked || 0,
+          comments: data.comments || 0,
+          createTime: data.createTime || '',
+          updateTime: data.updateTime || '',
+          isFollow: data.isFollow || false
         }
       } catch (error) {
         console.error('获取博客详情失败:', error)
@@ -262,13 +287,14 @@ export default {
     const loadLikeUsers = async () => {
       try {
         const data = await getBlogLikes(route.params.id)
-        likeUsers.value = data.map(user => ({
-          id: user.id,
-          name: user.nickName,
+        likeUsers.value = Array.isArray(data) ? data.map(user => ({
+          id: user.id || 0,
+          name: user.name || '未知用户',
           icon: user.icon ? (user.icon.startsWith('http') ? user.icon : `/${user.icon}`) : ''
-        }))
+        })) : []
       } catch (error) {
         console.error('获取点赞用户列表失败:', error)
+        likeUsers.value = []
       }
     }
 
@@ -439,7 +465,7 @@ export default {
           ElMessage.success('回复成功')
           replyContent.value = ''
           activeReplyId.value = null
-          await loadComments() // 重新加载���论列表
+          await loadComments() // 重新加载评���列表
         } else {
           ElMessage.error('回复失败')
         }
@@ -451,11 +477,48 @@ export default {
       }
     }
 
+    // 处理关注/取消关注
+    const handleFollow = async () => {
+      if (!userStore.isLoggedIn.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+
+      try {
+        const response = await followUser(blog.value.userId, !blog.value.isFollow)
+        // 检查返回的数据是否为"不能关注自己"
+        if (response === '不能关注自己') {
+          ElMessage.warning('不能关注自己')
+          return
+        }
+        
+        blog.value.isFollow = !blog.value.isFollow
+        ElMessage.success(blog.value.isFollow ? '关注成功' : '已取消关注')
+      } catch (error) {
+        console.error('关注操作失败:', error)
+        ElMessage.error('操作失败，请重试')
+      }
+    }
+
+    // 检查是否关注
+    const checkIsFollow = async () => {
+      if (!userStore.isLoggedIn.value || !blog.value.userId) return
+      
+      try {
+        const isFollowed = await isFollow(blog.value.userId)
+        blog.value.isFollow = isFollowed
+      } catch (error) {
+        console.error('检查关注状态失败:', error)
+      }
+    }
+
     onMounted(() => {
       loadBlogDetail()
       loadLikeUsers()
       loadShopInfo()
       loadComments()
+      checkIsFollow() // 添加检查关注状态
     })
 
     return {
@@ -473,7 +536,8 @@ export default {
       replying,
       handleReplyClick,
       cancelReply,
-      submitReply
+      submitReply,
+      handleFollow
     }
   }
 }
@@ -505,29 +569,49 @@ export default {
   margin-bottom: 20px;
 }
 
+.blog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
 .author-info {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #eee;
 }
 
 .author-meta {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
-.name {
+.author-meta h3 {
+  margin: 0;
   font-size: 16px;
-  font-weight: 500;
   color: #333;
 }
 
 .time {
   font-size: 12px;
   color: #999;
-  margin-top: 4px;
+}
+
+.is-following {
+  background-color: #f5f7fa;
+  color: #909399;
+  border-color: #d3d4d6;
+}
+
+.is-following:hover {
+  background-color: #f56c6c;
+  color: #fff;
+  border-color: #f56c6c;
+}
+
+.is-following:hover:before {
+  content: '取消关注';
 }
 
 .actions {

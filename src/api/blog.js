@@ -13,7 +13,11 @@ export const getHotBlogs = (current = 1) => {
 export const getBlogById = (id) => {
   return request({
     url: `/blog/${id}`,
-    method: 'get'
+    method: 'get',
+    noAuth: true,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
   })
 }
 
@@ -29,15 +33,20 @@ export const likeBlog = (id) => {
 export const getBlogLikes = (id) => {
   return request({
     url: `/blog/likes/${id}`,
-    method: 'get'
+    method: 'get',
+    noAuth: true,
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
   })
 }
 
-// 获取个人博客列表
-export const getBlogOfMe = () => {
+// 获取我的博客列表
+export const getBlogOfMe = (current = 1) => {
   return request({
     url: '/blog/of/me',
-    method: 'get'
+    method: 'get',
+    params: { current }
   })
 }
 
@@ -51,14 +60,13 @@ export const getBlogShopInfo = (id) => {
 }
 
 // 获取关注列表博客
-export const getFollowBlogs = (lastId) => {
+export const getFollowBlogs = (lastId, offset) => {
   return request({
-    //URL
     url: '/blog/myFollow',
-    //请求类型
     method: 'get',
     params: {
-      lastId: lastId || Date.now()
+      lastId: lastId || Date.now(),
+      offset: offset || ''
     }
   })
 }
