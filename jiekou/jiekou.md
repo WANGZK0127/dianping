@@ -1860,6 +1860,71 @@
 
 * 失败(404)
 
+### 删除图片
+
+> 创建人: 倪克斯
+
+> 更新人: 倪克斯
+
+> 创建时间: 2024-12-19 10:34:55
+
+> 更新时间: 2024-12-19 10:35:02
+
+```text
+暂无描述
+```
+
+**接口状态**
+
+> 已完成
+
+**接口URL**
+
+> http://localhost:8088/upload/delete?name=\blogs\14\9\Mt.Fuji.jpg
+
+| 环境 | URL  |
+| ---- | ---- |
+
+
+**请求方式**
+
+> GET
+
+**Content-Type**
+
+> none
+
+**请求Header参数**
+
+| 参数名        | 示例值                           | 参数类型 | 是否必填 | 参数描述 |
+| ------------- | -------------------------------- | -------- | -------- | -------- |
+| authorization | 6e982e47f1a8432b9e6398691d1526a4 | String   | 是       | -        |
+
+**请求Query参数**
+
+| 参数名 | 示例值                  | 参数类型 | 是否必填 | 参数描述 |
+| ------ | ----------------------- | -------- | -------- | -------- |
+| name   | \blogs\14\9\Mt.Fuji.jpg | String   | 是       | -        |
+
+**认证方式**
+
+> 继承父级
+
+**响应示例**
+
+* 成功(200)
+
+```javascript
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": null
+}
+```
+
+* 失败(404)
+
 ## 关注
 
 > 创建人: 倪克斯
@@ -2494,6 +2559,7 @@
 					"content": "你说的对",
 					"fromId": "2",
 					"toId": null,
+					"isAuthor": false,
 					"parentId": 1,
 					"userName": "userh76plcv5iu",
 					"avatar": null,
@@ -2508,6 +2574,7 @@
 			"content": "好漂亮啊",
 			"fromId": null,
 			"toId": null,
+			"isAuthor": false,
 			"parentId": -1,
 			"userName": "wzk",
 			"avatar": null,

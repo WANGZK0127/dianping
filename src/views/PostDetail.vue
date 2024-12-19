@@ -89,14 +89,110 @@
           <div v-else class="comment-items">
             <div v-for="comment in comments" :key="comment.id" class="comment-item">
               <div class="comment-user">
-                <el-avatar :size="32" :src="comment.icon" />
+                <el-avatar :size="32" :src="comment.avatar" />
                 <div class="comment-info">
-                  <span class="username">{{ comment.nickName }}</span>
-                  <span class="time">{{ formatTime(comment.createTime) }}</span>
+                  <span class="username">
+                    {{ comment.userName }}
+                    <el-tag v-if="comment.isAuthor" size="small" type="success">作者</el-tag>
+                  </span>
+                  <span class="time">{{ formatTime(comment.createdTime) }}</span>
                 </div>
               </div>
               <div class="comment-content">
                 {{ comment.content }}
+              </div>
+              <!-- 评论操作区 -->
+              <div class="comment-actions">
+                <el-button 
+                  link
+                  size="small"
+                  @click="handleReplyClick(comment)"
+                >
+                  <el-icon><ChatLineRound /></el-icon>
+                  回复
+                </el-button>
+              </div>
+              <!-- 回复输入框 -->
+              <div v-if="activeReplyId === comment.id" class="reply-input">
+                <el-input
+                  v-model="replyContent"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="写下你的回复..."
+                />
+                <div class="reply-actions">
+                  <el-button 
+                    size="small"
+                    @click="cancelReply"
+                  >
+                    取消
+                  </el-button>
+                  <el-button 
+                    type="primary" 
+                    size="small"
+                    :loading="replying"
+                    @click="submitReply(comment)"
+                  >
+                    发表回复
+                  </el-button>
+                </div>
+              </div>
+              <!-- 子评论列表 -->
+              <div v-if="comment.children && comment.children.length" class="reply-list">
+                <div v-for="reply in comment.children" :key="reply.id" class="reply-item">
+                  <div class="comment-user">
+                    <el-avatar :size="24" :src="reply.avatar" />
+                    <div class="comment-info">
+                      <span class="username">
+                        {{ reply.userName }}
+                        <el-tag v-if="reply.isAuthor" size="small" type="success">作者</el-tag>
+                      </span>
+                      <span class="time">{{ formatTime(reply.createdTime) }}</span>
+                    </div>
+                  </div>
+                  <div class="reply-content">
+                    <template v-if="reply.toUserName">
+                      <span class="reply-to">回复 <span class="username">@{{ reply.toUserName }}</span>：</span>
+                    </template>
+                    {{ reply.content }}
+                  </div>
+                  <!-- 回复的操作区 -->
+                  <div class="comment-actions">
+                    <el-button 
+                      link
+                      size="small"
+                      @click="handleReplyClick(reply, comment)"
+                    >
+                      <el-icon><ChatLineRound /></el-icon>
+                      回复
+                    </el-button>
+                  </div>
+                  <!-- 回复的回复输入框 -->
+                  <div v-if="activeReplyId === reply.id" class="reply-input nested">
+                    <el-input
+                      v-model="replyContent"
+                      type="textarea"
+                      :rows="2"
+                      :placeholder="`回复 ${reply.userName}...`"
+                    />
+                    <div class="reply-actions">
+                      <el-button 
+                        size="small"
+                        @click="cancelReply"
+                      >
+                        取消
+                      </el-button>
+                      <el-button 
+                        type="primary" 
+                        size="small"
+                        :loading="replying"
+                        @click="submitReply(reply, comment)"
+                      >
+                        发表回复
+                      </el-button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -132,6 +228,9 @@ export default {
     const comments = ref([])
     const commentContent = ref('')
     const commenting = ref(false)
+    const activeReplyId = ref(null) // 当前正在回复的评论ID
+    const replyContent = ref('') // 回复内容
+    const replying = ref(false) // 回复提交状态
 
     // 格式化时间
     const formatTime = (timestamp) => {
@@ -214,7 +313,7 @@ export default {
               if (img.startsWith('http')) return img
               return img.startsWith('/') ? img : `/${img}`
             }) : [],
-            score: (data.score / 10).toFixed(1)
+            score: Number((data.score / 10).toFixed(1))
           }
         }
       } catch (error) {
@@ -225,16 +324,42 @@ export default {
     // 获取评论列表
     const loadComments = async () => {
       try {
-        const data = await getBlogComments(route.params.id)
-        comments.value = data.map(comment => ({
-          id: comment.id,
-          content: comment.content,
-          createTime: comment.createTime,
-          nickName: comment.user.nickName,
-          icon: comment.user.icon ? (comment.user.icon.startsWith('http') ? comment.user.icon : `/${comment.user.icon}`) : ''
-        }))
+        const response = await getBlogComments(route.params.id)
+        console.log('评论数据:', response)
+        
+        // 检查响应是否为数组
+        if (!Array.isArray(response)) {
+          console.log('评论数据格式不正确')
+          comments.value = []
+          return
+        }
+        
+        // 处理评论数据
+        comments.value = response.map(comment => {
+          console.log('处理评论:', comment)
+          return {
+            id: comment.nodeId,
+            content: comment.content,
+            createdTime: comment.createdTime,
+            userName: comment.userName,
+            avatar: comment.avatar,
+            isAuthor: comment.isAuthor,
+            children: comment.children ? comment.children.map(child => ({
+              id: child.nodeId,
+              content: child.content,
+              createdTime: child.createdTime,
+              userName: child.userName,
+              avatar: child.avatar,
+              isAuthor: child.isAuthor,
+              toUserName: child.toId ? comment.userName : null // 如果有toId，说明是回复父评论的用户
+            })) : []
+          }
+        })
+        
+        console.log('处理后的评论数据:', comments.value)
       } catch (error) {
         console.error('获取评论列表失败:', error)
+        comments.value = []
       }
     }
 
@@ -253,15 +378,76 @@ export default {
 
       try {
         commenting.value = true
-        await addComment(blog.value.id, commentContent.value.trim())
-        ElMessage.success('评论成功')
-        commentContent.value = ''
-        await loadComments() // 重新加载评论列表
+        const response = await addComment(blog.value.id, commentContent.value.trim(), {
+          replyType: 1, // 1表示评论
+          targetId: blog.value.id  // 评论时targetId设置为博客ID
+        })
+        
+        console.log('评论响应:', response)
+        
+        if (response === true) {
+          ElMessage.success('评论成功')
+          commentContent.value = ''
+          await loadComments() // 重新加载评论列表
+        } else {
+          ElMessage.error('评论失败')
+        }
       } catch (error) {
         console.error('发表评论失败:', error)
         ElMessage.error('发表评论失败')
       } finally {
         commenting.value = false
+      }
+    }
+
+    // 点击回复按钮
+    const handleReplyClick = (comment, parentComment = null) => {
+      if (!userStore.isLoggedIn.value) {
+        ElMessage.warning('请先登录')
+        router.push('/login')
+        return
+      }
+      activeReplyId.value = comment.id
+      replyContent.value = ''
+    }
+
+    // 取消回复
+    const cancelReply = () => {
+      activeReplyId.value = null
+      replyContent.value = ''
+    }
+
+    // 提交回复
+    const submitReply = async (comment, parentComment = null) => {
+      if (!replyContent.value.trim()) {
+        ElMessage.warning('回复内容不能为空')
+        return
+      }
+
+      try {
+        replying.value = true
+        // 如果有父评论，使用父评论的ID，否则使用当前评论的ID
+        const targetId = parentComment ? parentComment.id : comment.id
+        const response = await addComment(blog.value.id, replyContent.value.trim(), {
+          replyType: 2, // 2表示回复
+          targetId     // 回复时设置为父评论的ID
+        })
+        
+        console.log('回复响应:', response)
+        
+        if (response === true) {
+          ElMessage.success('回复成功')
+          replyContent.value = ''
+          activeReplyId.value = null
+          await loadComments() // 重新加载���论列表
+        } else {
+          ElMessage.error('回复失败')
+        }
+      } catch (error) {
+        console.error('发表回复失败:', error)
+        ElMessage.error('发表回复失败')
+      } finally {
+        replying.value = false
       }
     }
 
@@ -281,7 +467,13 @@ export default {
       comments,
       commentContent,
       commenting,
-      submitComment
+      submitComment,
+      activeReplyId,
+      replyContent,
+      replying,
+      handleReplyClick,
+      cancelReply,
+      submitReply
     }
   }
 }
@@ -553,6 +745,34 @@ export default {
   margin-left: 44px;
 }
 
+.reply-list {
+  margin-left: 44px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.reply-item {
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.reply-item:last-child {
+  border-bottom: none;
+}
+
+.reply-item .comment-user {
+  margin-bottom: 4px;
+}
+
+.reply-content {
+  font-size: 13px;
+  color: #666;
+  line-height: 1.5;
+  margin-left: 32px;
+}
+
 .stats span {
   display: flex;
   align-items: center;
@@ -568,5 +788,71 @@ export default {
 .stats span:hover {
   background-color: rgba(64, 158, 255, 0.2);
   transform: scale(1.05);
+}
+
+.comment-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  margin-right: 16px;
+}
+
+.comment-actions .el-button {
+  color: #909399;
+}
+
+.comment-actions .el-button:hover {
+  color: #409EFF;
+}
+
+.reply-input {
+  margin: 12px 44px 0;
+  padding: 12px;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.reply-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+  gap: 8px;
+}
+
+.reply-input.nested {
+  margin: 12px 32px 0;
+  background: #f9f9f9;
+}
+
+.reply-item .comment-actions {
+  margin-right: 0;
+  margin-left: 32px;
+}
+
+.username {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.username .el-tag {
+  margin-left: 4px;
+  height: 20px;
+  padding: 0 6px;
+  font-size: 12px;
+}
+
+.reply-to {
+  color: #909399;
+  margin-right: 4px;
+}
+
+.reply-to .username {
+  display: inline;
+  color: #409EFF;
+  font-weight: 500;
 }
 </style>

@@ -29,6 +29,7 @@
             :on-success="handleUploadSuccess"
             :before-upload="beforeUpload"
             :on-error="handleUploadError"
+            :on-remove="handleRemove"
             name="file"
             accept="image/*"
           >
@@ -64,7 +65,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import { createBlog } from '../api/blog'
+import { createBlog, deleteImage } from '../api/blog'
 import { userStore } from '../store/user'
 
 export default {
@@ -74,6 +75,7 @@ export default {
     const router = useRouter()
     const fileList = ref([])
     const submitting = ref(false)
+    const shops = ref([])
     
     // 计算上传请求头
     const uploadHeaders = computed(() => ({
@@ -132,6 +134,36 @@ export default {
       }
     }
 
+    // 删除图片处理
+    const handleRemove = async (uploadFile) => {
+      try {
+        // 从URL中提取图片路径
+        const imagePath = uploadFile.url.replace('http://localhost', '')
+        console.log('删除图片路径:', imagePath)
+        
+        const response = await deleteImage(imagePath)
+        console.log('删除图片响应:', response)
+        
+        // 检查响应的success字段
+        if (response && response.success) {
+          ElMessage.success('图片删除成功')
+          // 从fileList中移除图片
+          const index = fileList.value.indexOf(uploadFile)
+          if (index !== -1) {
+            fileList.value.splice(index, 1)
+          }
+          return true
+        } else {
+          ElMessage.error('图片删除失败')
+          return false
+        }
+      } catch (error) {
+        console.error('删除图片失败:', error)
+        ElMessage.error('删除图片失败，请重试')
+        return false
+      }
+    }
+
     // 提交博客
     const submitBlog = async () => {
       if (!blogForm.value.title.trim()) {
@@ -182,7 +214,9 @@ export default {
       beforeUpload,
       handleUploadSuccess,
       handleUploadError,
-      submitBlog
+      handleRemove,
+      submitBlog,
+      shops
     }
   }
 }

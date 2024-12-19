@@ -40,6 +40,10 @@ service.interceptors.response.use(
     
     const res = response.data
     if (res.success && res.code === 200) {
+      // 如果data为null且success为true，返回整个响应对象
+      if (res.data === null) {
+        return res
+      }
       return res.data
     } else {
       ElMessage.error(res.message || '请求失败')

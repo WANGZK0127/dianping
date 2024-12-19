@@ -66,20 +66,30 @@ export const getFollowBlogs = (lastId) => {
 // 获取博客评论列表
 export const getBlogComments = (id) => {
   return request({
-    url: `/blog/comment/${id}`,
-    method: 'get'
+    url: `/commentReply/list`,
+    method: 'post',
+    params: { id }
+  }).then(response => {
+    console.log('API Response:', response)
+    return response
   })
 }
 
-// 添加评论
-export const addComment = (blogId, content) => {
+// 添加评论或回复
+export const addComment = (blogId, content, options = {}) => {
+  const { replyType = 1, targetId = null } = options
   return request({
-    url: '/blog/comment',
+    url: '/commentReply/save',
     method: 'post',
     data: {
       blogId,
-      content
+      content,
+      replyType, // 1表示评论，2表示回复
+      targetId   // 回复时设置为父评论的ID
     }
+  }).then(response => {
+    console.log('评论/回复响应:', response)
+    return response
   })
 }
 
@@ -89,5 +99,19 @@ export const createBlog = (blog) => {
     url: '/blog/',
     method: 'post',
     data: blog
+  })
+}
+
+// 删除图片
+export const deleteImage = (imagePath) => {
+  return request({
+    url: '/upload/delete',
+    method: 'get',
+    params: {
+      name: imagePath
+    },
+    transformResponse: [(data) => {
+      return JSON.parse(data)
+    }]
   })
 } 
