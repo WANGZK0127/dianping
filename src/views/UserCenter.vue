@@ -23,6 +23,19 @@
                   <div class="blog-content">
                     <h4>{{ blog.title }}</h4>
                     <p>{{ blog.content }}</p>
+                    <div class="blog-footer">
+                      <span class="time">{{ formatTime(blog.createTime) }}</span>
+                      <div class="stats">
+                        <span class="likes">
+                          <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
+                          {{ blog.liked }}
+                        </span>
+                        <span class="comments">
+                          <el-icon><ChatLineRound /></el-icon>
+                          {{ blog.comments }}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -49,10 +62,16 @@
                     <p>{{ blog.content }}</p>
                     <div class="blog-footer">
                       <span class="time">{{ formatTime(blog.createTime) }}</span>
-                      <span class="likes">
-                        <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
-                        {{ blog.liked }}
-                      </span>
+                      <div class="stats">
+                        <span class="likes">
+                          <el-icon :class="{ 'liked': blog.isLike }"><Pointer /></el-icon>
+                          {{ blog.liked }}
+                        </span>
+                        <span class="comments">
+                          <el-icon><ChatLineRound /></el-icon>
+                          {{ blog.comments }}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -87,7 +106,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Pointer } from '@element-plus/icons-vue'
+import { Pointer, ChatLineRound } from '@element-plus/icons-vue'
 import { userStore } from '../store/user'
 import { getBlogOfMe } from '../api/blog'
 import { getMyFollows, getMyFans } from '../api/user'
@@ -95,7 +114,7 @@ import { getFollowBlogs } from '../api/blog'
 
 export default {
   name: 'UserCenter',
-  components: { Pointer },
+  components: { Pointer, ChatLineRound },
   setup() {
     const router = useRouter()
     const blogs = ref([])
@@ -128,11 +147,12 @@ export default {
           }) : [],
           createTime: blog.createTime,
           isLike: blog.isLike,
-          liked: blog.liked || 0
+          liked: blog.liked || 0,
+          comments: blog.comments || 0
         }))
       } catch (error) {
         console.error('获取个人博客列表失败:', error)
-        ElMessage.error('获取个人博客列表失败')
+        ElMessage.error('获取个人��客列表失败')
       }
     }
 
@@ -171,7 +191,7 @@ export default {
       }
     }
 
-    // 获取关注列表博客
+    // 获取关注列表客
     const loadFollowBlogs = async () => {
       try {
         loading.value = true
@@ -194,6 +214,7 @@ export default {
           name: blog.name,
           isLike: blog.isLike,
           liked: blog.liked || 0,
+          comments: blog.comments || 0,
           createTime: blog.createTime
         }))
 
@@ -232,6 +253,7 @@ export default {
           name: blog.name,
           isLike: blog.isLike,
           liked: blog.liked || 0,
+          comments: blog.comments || 0,
           createTime: blog.createTime
         }))
 
@@ -437,7 +459,12 @@ export default {
   color: #999;
 }
 
-.likes {
+.stats {
+  display: flex;
+  gap: 12px;
+}
+
+.stats span {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -445,13 +472,17 @@ export default {
   color: #666;
 }
 
-.likes .el-icon {
+.stats .el-icon {
   font-size: 16px;
   color: #409EFF;
 }
 
-.likes .el-icon.liked {
+.stats .el-icon.liked {
   color: #ff6b6b;
+}
+
+.comments .el-icon {
+  color: #67C23A;
 }
 
 .load-more {

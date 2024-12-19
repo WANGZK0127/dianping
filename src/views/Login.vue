@@ -75,13 +75,13 @@ export default {
         if (valid) {
           loading.value = true
           try {
-            const res = await login(loginForm)
-            localStorage.setItem('token', res)
+            const token = await login(loginForm)
+            await userStore.login(token)
             ElMessage.success('登录成功')
-            userStore.login(loginForm.phone)
             router.push('/')
           } catch (error) {
             console.error('登录错误:', error)
+            ElMessage.error(error?.message || '登录失败，请重试')
           } finally {
             loading.value = false
           }

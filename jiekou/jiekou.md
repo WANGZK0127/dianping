@@ -745,7 +745,133 @@
 * 成功(200)
 
 ```javascript
-暂无数据
+{
+	"success": true,
+	"code": 200,
+	"message": "成功",
+	"data": [
+		{
+			"id": 1,
+			"shopId": 1,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "测试1",
+			"images": "http://localhost/blogs/0/Mt.Fuji.jpg",
+			"content": "这是测试1",
+			"liked": 2,
+			"comments": 8,
+			"createTime": "2024-12-13 15:52:49",
+			"updateTime": "2024-12-13 15:52:49"
+		},
+		{
+			"id": 2,
+			"shopId": 1,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "测试2",
+			"images": "http://localhost/blogs/1/jay1.webp,http://localhost/blogs/1/jay2.jpg",
+			"content": "这是测试2",
+			"liked": 4,
+			"comments": 9,
+			"createTime": "2024-12-13 15:52:49",
+			"updateTime": "2024-12-13 15:52:49"
+		},
+		{
+			"id": 4,
+			"shopId": 8,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "艺术，手工艺品及缝纫",
+			"images": "1",
+			"content": "2QpmpgslgV",
+			"liked": 0,
+			"comments": 6,
+			"createTime": "2016-05-28 22:42:57",
+			"updateTime": "2002-11-07 22:44:14"
+		},
+		{
+			"id": 12,
+			"shopId": 10,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "工具与家居装饰",
+			"images": "1",
+			"content": "9O3HecHEpC",
+			"liked": 3,
+			"comments": 51,
+			"createTime": "2010-03-18 23:13:48",
+			"updateTime": "2022-10-22 08:29:49"
+		},
+		{
+			"id": 14,
+			"shopId": null,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "12312",
+			"images": "http://localhost/blogs/5/3/40f0d25a-eefd-4853-9524-9ba40149985c.jpg",
+			"content": "123132",
+			"liked": 0,
+			"comments": null,
+			"createTime": "2024-12-18 09:28:13",
+			"updateTime": null
+		},
+		{
+			"id": 15,
+			"shopId": null,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "123123",
+			"images": "http://localhost/blogs/2/15/26a352c6-0ed3-481a-b62b-1ceb45a16dd6.jpg",
+			"content": "123123",
+			"liked": 0,
+			"comments": null,
+			"createTime": "2024-12-18 09:28:49",
+			"updateTime": null
+		},
+		{
+			"id": 16,
+			"shopId": null,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "qqwd",
+			"images": "",
+			"content": "qweqwe",
+			"liked": 0,
+			"comments": null,
+			"createTime": "2024-12-18 09:31:31",
+			"updateTime": null
+		},
+		{
+			"id": 17,
+			"shopId": 0,
+			"userId": 1,
+			"icon": null,
+			"name": null,
+			"isLike": null,
+			"title": "12312341",
+			"images": "http://localhost/blogs/0/2/75eac84d-00c3-4c73-9345-b1fb0dbe55dc.jpg",
+			"content": "123123124",
+			"liked": 0,
+			"comments": null,
+			"createTime": "2024-12-18 09:41:38",
+			"updateTime": null
+		}
+	]
+}
 ```
 
 * 失败(404)

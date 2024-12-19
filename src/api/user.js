@@ -35,7 +35,7 @@ export function logout() {
 }
 
 // 获取用户主页信息
-export function getUserMe() {
+export const getUserMe = () => {
   return request({
     url: '/user/me',
     method: 'get'
@@ -43,7 +43,7 @@ export function getUserMe() {
 }
 
 // 获取用户详细信息
-export function getUserDetailInfo() {
+export const getUserDetailInfo = () => {
   return request({
     url: '/userInfo/info',
     method: 'get'

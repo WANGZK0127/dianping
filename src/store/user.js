@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { getUserMe } from '../api/user'
 
 // 创建用户状态
 export const userStore = {
@@ -6,46 +7,61 @@ export const userStore = {
   userInfo: ref(null),
 
   // 登录
-  login(username) {
-    this.isLoggedIn.value = true
-    this.userInfo.value = {
-      username,
-      avatar: 'https://via.placeholder.com/40'
+  async login(token) {
+    try {
+      // 保存token
+      localStorage.setItem('token', token)
+      
+      // 获取用户信息
+      const userInfo = await getUserMe()
+      this.userInfo.value = {
+        id: userInfo.id,
+        username: userInfo.name,
+        avatar: userInfo.icon || 'https://via.placeholder.com/40'
+      }
+      
+      this.isLoggedIn.value = true
+      
+      // 保存到本地存储
+      localStorage.setItem('userInfo', JSON.stringify(this.userInfo.value))
+      localStorage.setItem('isLoggedIn', 'true')
+    } catch (error) {
+      console.error('获取用户信息失败:', error)
+      // 清除token和登录状态
+      this.logout()
+      throw error
     }
-    // 保存到本地存储
-    localStorage.setItem('userInfo', JSON.stringify(this.userInfo.value))
-    localStorage.setItem('isLoggedIn', 'true')
   },
 
   // 退出登录
-  async logout() {
-    try {
-      await logout() // 调用后端登出接口
-      this.isLoggedIn.value = false
-      this.userInfo.value = null
-      // 清除本地存储
-      localStorage.removeItem('userInfo')
-      localStorage.removeItem('isLoggedIn')
-      localStorage.removeItem('token')
-    } catch (error) {
-      console.error('退出登录失败:', error)
-      // 即使后端请求失败，也要清除本地状态
-      this.isLoggedIn.value = false
-      this.userInfo.value = null
-      localStorage.removeItem('userInfo')
-      localStorage.removeItem('isLoggedIn')
-      localStorage.removeItem('token')
-    }
+  logout() {
+    this.isLoggedIn.value = false
+    this.userInfo.value = null
+    // 清除本地存储
+    localStorage.removeItem('userInfo')
+    localStorage.removeItem('isLoggedIn')
+    localStorage.removeItem('token')
   },
 
   // 初始化用户状态
-  initUserState() {
+  async initUserState() {
+    const token = localStorage.getItem('token')
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
-    const userInfo = JSON.parse(localStorage.getItem('userInfo'))
     
-    if (isLoggedIn && userInfo) {
-      this.isLoggedIn.value = true
-      this.userInfo.value = userInfo
+    if (token && isLoggedIn) {
+      try {
+        // 获取最新的用户信息
+        const userInfo = await getUserMe()
+        this.userInfo.value = {
+          id: userInfo.id,
+          username: userInfo.name,
+          avatar: userInfo.icon || 'https://via.placeholder.com/40'
+        }
+        this.isLoggedIn.value = true
+      } catch (error) {
+        console.error('初始化用户状态失败:', error)
+        this.logout()
+      }
     }
   },
 
